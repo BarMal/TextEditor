@@ -11,6 +11,8 @@ class State(
     val lineLength: Int
 ) {
 
+  def exitCondition: Boolean = !userEffects.lastOption.contains(Effect.Escape)
+  
   def ++(in: Effect): State = in match
     case effect: BufferEffect     => effect.effect(this)
     case effect: CursorOnlyEffect => effect.effect(this)

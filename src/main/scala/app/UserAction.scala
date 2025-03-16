@@ -1,6 +1,7 @@
 package app
 
 import UserAction.Action.*
+import app.UserAction.{Action, Printable}
 import app.effect.Effect.Experimental
 import cats.Show
 import com.googlecode.lanterna.input.{KeyStroke, KeyType}
@@ -52,8 +53,7 @@ object UserAction {
     case Nil                      => Effect.Escape
     case _                        => Effect.Undefined(Escape :: actions)
 
-  def keyStrokesToEffect(keyStroke: KeyStroke): Effect = {
-    keyStroke
+  def keyStrokeToEffect(keyStroke: KeyStroke): Effect = {
     Experimental(keyStroke)
   }
 
@@ -69,3 +69,23 @@ object UserAction {
   given showInstance: Show[UserAction] = (t: UserAction) => t.toString
 
 }
+
+//sealed trait Modifiers
+//
+//object Modifiers {
+//  case object Control extends Modifiers
+//  case object Alt extends Modifiers
+//  case object Shift extends Modifiers
+//}
+//
+//case class UserInput(key: Action, modifiers: List[Modifiers])
+//
+//object UserInput {
+//  def apply(keyStroke: KeyStroke) = UserInput(Printable(keyStroke.getCharacter.toInt),
+//    List(
+//      Option.when(keyStroke.isCtrlDown)(Modifiers.Control),
+//      Option.when(keyStroke.isAltDown)(Modifiers.Alt),
+//      Option.when(keyStroke.isShiftDown)(Modifiers.Shift)
+//    ).flatten
+//  )
+//}
