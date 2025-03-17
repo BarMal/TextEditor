@@ -1,8 +1,10 @@
 package app
 
-import app.effect.Effect.Undefined
 import cats.Show
+import com.googlecode.lanterna.input.KeyStroke
 import effect.{BufferEffect, CursorOnlyEffect, Effect}
+import app.UserInput.flatten
+import app.effect.Effect.Unexpected
 
 class State(
     val buffer: StringBuilder,
@@ -12,8 +14,8 @@ class State(
 ) {
 
   def exitCondition: Boolean = !userEffects.lastOption.contains(Effect.Escape)
-  
-  def ++(in: Effect): State = in match
+
+  def ++(in: KeyStroke): State = UserInput.keyStrokeToEffect(in.flatten) match
     case effect: BufferEffect     => effect.effect(this)
     case effect: CursorOnlyEffect => effect.effect(this)
     case others =>
@@ -26,6 +28,6 @@ object State {
 
   given showInstance: Show[State] = (t: State) =>
     s"""Cursor position: ${t.cursorPosition} | Buffer size: ${t.buffer.length} | Last effect: ${t.userEffects.headOption
-        .getOrElse(Undefined(Nil))}\n${t.buffer.mkString}"""
+        .getOrElse(Unexpected())}\n${t.buffer.mkString}"""
 
 }

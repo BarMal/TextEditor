@@ -12,8 +12,8 @@ lazy val root = (project in file("."))
 libraryDependencies ++= Seq(
   "org.typelevel"          %% "cats-effect" % "3.6-623178c",
   "co.fs2"                 %% "fs2-core"    % "3.12.0-RC1",
-//  "org.jline"               % "jline"       % "3.29.0",
-  "com.googlecode.lanterna" % "lanterna"    % "3.2.0-alpha1"
+  "com.googlecode.lanterna" % "lanterna"    % "3.2.0-alpha1",
+  "org.virtuslab"          %% "scala-yaml"  % "0.3.0"
 )
 
 val log4CatsVersion = "2.7.0"

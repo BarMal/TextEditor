@@ -1,6 +1,6 @@
 package app.effect
 
-import app.UserAction
+import app.UserInput
 import cats.Show
 import com.googlecode.lanterna.input.KeyStroke
 
@@ -12,10 +12,8 @@ object Effect {
 
   case object Escape extends Effect
 
-  case class Undefined(raw: List[UserAction]) extends Effect
+  case class Unexpected(input: UserInput*) extends Effect
 
-  case class Experimental(raw: KeyStroke) extends Effect
-  
   given effectListShowInstance: Show[List[Effect]] =
     (t: List[Effect]) => t.take(5).mkString(", ")
 }
