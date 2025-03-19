@@ -13,7 +13,8 @@ class State(
     val lineLength: Int
 ) {
 
-  def exitCondition: Boolean = !userEffects.lastOption.contains(Effect.Escape)
+  def exitCondition: Boolean = true
+//    !userEffects.lastOption.contains(Effect.Escape)
 
   def ++(in: KeyStroke): State = UserInput.keyStrokeToEffect(in.flatten) match
     case effect: BufferEffect     => effect.effect(this)

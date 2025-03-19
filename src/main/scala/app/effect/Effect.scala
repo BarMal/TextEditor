@@ -2,9 +2,6 @@ package app.effect
 
 import app.UserInput
 import cats.Show
-import com.googlecode.lanterna.input.KeyStroke
-
-
 
 trait Effect
 

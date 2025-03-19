@@ -3,22 +3,33 @@ package app.terminal
 import cats.effect.kernel.Async
 import cats.implicits.toFunctorOps
 import cats.{Applicative, Show}
-import com.googlecode.lanterna.{TerminalSize, input}
+import com.googlecode.lanterna.{input, TerminalSize}
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 import scala.language.postfixOps
 
 class Term[F[_]: Async](terminal: Terminal) {
+
+  private val logger: SelfAwareStructuredLogger[F] =
+    Slf4jFactory.create[F].getLogger
 
   private val fTerm = Async[F].blocking(terminal)
 
   def print[T: Show](ts: T*): F[Unit] =
     fTerm.map { term =>
       term.clearScreen()
-      ts.toList.foreach(t => Show[T].show(t).foreach {
-        term.putCharacter
-      })
+      ts.toList.foreach(t =>
+        Show[T].show(t).foreach { char =>
+          try term.putCharacter(char)
+          catch
+            case ex =>
+              logger.error(ex)(s"Error printing character for $t")
+          term.putCharacter
+        }
+      )
       term.flush()
     }
 

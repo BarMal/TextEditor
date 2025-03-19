@@ -6,7 +6,7 @@ import app.effect.{BufferEffect, CursorOnlyEffect, Effect, RemoveEffect}
 import com.googlecode.lanterna.input.{KeyStroke, KeyType}
 
 case class UserInput(
-    character: Character,
+    character: Option[Character],
     keyType: KeyType,
     modifiers: List[Modifier],
     time: Long
@@ -18,18 +18,19 @@ object UserInput {
 
   def nonPrintingHandler(input: UserInput): Effect = input.keyType match
     case KeyType.Character => Unexpected(input)
-    case KeyType.Escape => ???
     case KeyType.Backspace => RemoveEffect.Backspace
     case KeyType.ArrowLeft => CursorOnlyEffect.LeftArrow
     case KeyType.ArrowRight => CursorOnlyEffect.RightArrow
     case KeyType.ArrowUp => CursorOnlyEffect.UpArrow
     case KeyType.ArrowDown => CursorOnlyEffect.DownArrow
-    case KeyType.Insert => ???
     case KeyType.Delete => RemoveEffect.Delete
     case KeyType.Home => CursorOnlyEffect.Home
     case KeyType.End => CursorOnlyEffect.End
     case KeyType.PageUp => CursorOnlyEffect.PageUp
     case KeyType.PageDown => CursorOnlyEffect.PageDown
+    case _ => Unexpected(input)
+    case KeyType.Insert => ???
+    case KeyType.Escape => ???
     case KeyType.Tab => ???
     case KeyType.ReverseTab => ???
     case KeyType.Enter => ???
@@ -60,7 +61,7 @@ object UserInput {
   def keyStrokeToEffect(input: UserInput): Effect =
     input.modifiers match
       case Shift :: Nil | Nil if input.keyType == KeyType.Character =>
-        BufferEffect.Write(input.character)
+        BufferEffect.Write(input.character.map(_.toChar).getOrElse(' '))
       case Nil => nonPrintingHandler(input)
       case _   => combinationHandler(input)
 
@@ -112,7 +113,7 @@ object UserInput {
 
   extension (ks: KeyStroke) {
     def flatten: UserInput =
-      UserInput(ks.getCharacter, ks.getKeyType, Modifier(ks), ks.getEventTime)
+      UserInput(Option(ks.getCharacter), ks.getKeyType, Modifier(ks), ks.getEventTime)
   }
 
 }
