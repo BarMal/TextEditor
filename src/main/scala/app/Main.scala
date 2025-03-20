@@ -1,6 +1,5 @@
 package app
 
-import app.State.showInstance
 import app.config.AppConfig
 import app.config.AppConfig.yamlDecoder
 import app.terminal.Term
@@ -8,7 +7,6 @@ import cats.effect.{ExitCode, IO, IOApp, Resource}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.virtuslab.yaml.*
-import scala.concurrent.duration.DurationInt
 
 import scala.language.postfixOps
 
@@ -36,9 +34,9 @@ object Main extends IOApp {
     terminal
       .use(processStream)
       .handleErrorWith(error =>
-        logger.error(error)("Something went wrong") >> IO.sleep(
-          5 seconds
-        ) >> IO(ExitCode.Error)
+        logger
+          .error(error)("Something went wrong")
+          .as(ExitCode.Error)
       )
 
 }

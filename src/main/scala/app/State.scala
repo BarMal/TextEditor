@@ -1,10 +1,10 @@
 package app
 
+import app.Renderable.{Body, Header}
+import app.UserInput.flatten
+import app.effect.{BufferEffect, CursorOnlyEffect, Effect}
 import cats.Show
 import com.googlecode.lanterna.input.KeyStroke
-import effect.{BufferEffect, CursorOnlyEffect, Effect}
-import app.UserInput.flatten
-import app.effect.Effect.Unexpected
 
 class State(
     val buffer: StringBuilder,
@@ -28,7 +28,6 @@ object State {
   def empty = new State(new StringBuilder(""), 0, List.empty[Effect], 30)
 
   given showInstance: Show[State] = (t: State) =>
-    s"""Cursor position: ${t.cursorPosition} | Buffer size: ${t.buffer.length} | Last effect: ${t.userEffects.headOption
-        .getOrElse(Unexpected())}\n${t.buffer.mkString}"""
+    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))
 
 }

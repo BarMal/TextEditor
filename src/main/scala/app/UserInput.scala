@@ -28,6 +28,7 @@ object UserInput {
     case KeyType.End => CursorOnlyEffect.End
     case KeyType.PageUp => CursorOnlyEffect.PageUp
     case KeyType.PageDown => CursorOnlyEffect.PageDown
+    case KeyType.Enter => BufferEffect.Return
     case _ => Unexpected(input)
     case KeyType.Insert => ???
     case KeyType.Escape => ???

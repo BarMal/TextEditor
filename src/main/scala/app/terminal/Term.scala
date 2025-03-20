@@ -18,18 +18,16 @@ class Term[F[_]: Async](terminal: Terminal) {
 
   private val fTerm = Async[F].blocking(terminal)
 
-  def print[T: Show](ts: T*): F[Unit] =
+  def print[T: Show](t: T): F[Unit] =
     fTerm.map { term =>
       term.clearScreen()
-      ts.toList.foreach(t =>
-        Show[T].show(t).foreach { char =>
-          try term.putCharacter(char)
-          catch
-            case ex =>
-              logger.error(ex)(s"Error printing character for $t")
-          term.putCharacter
-        }
-      )
+      Show[T].show(t).foreach { char =>
+        try term.putCharacter(char)
+        catch
+          case ex =>
+            logger.error(ex)(s"Error printing character for $t")
+        term.putCharacter
+      }
       term.flush()
     }
 
