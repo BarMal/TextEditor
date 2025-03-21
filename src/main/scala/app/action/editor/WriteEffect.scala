@@ -1,13 +1,13 @@
 package app.action.editor
 
-import app.State
+import app.BufferState
 
 sealed trait WriteEffect extends BufferEffect {
-  def effect: State => State
+  def effect: BufferState => BufferState
 
-  protected def write[T]: State => T => State = state =>
+  protected def write[T]: BufferState => T => BufferState = state =>
     in =>
-      State(
+      BufferState(
         buffer = state.buffer.insert(state.cursorPosition, in),
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
@@ -20,12 +20,12 @@ object WriteEffect {
 
   case class Write(char: Char) extends WriteEffect {
 
-    override def effect: State => State = state => write(state)(char)
+    override def effect: BufferState => BufferState = state => write(state)(char)
 
   }
 
   case object Return extends WriteEffect {
-    override def effect: State => State = state => write(state)('\n')
+    override def effect: BufferState => BufferState = state => write(state)('\n')
   }
 
 }

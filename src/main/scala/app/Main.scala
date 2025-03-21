@@ -23,9 +23,10 @@ object Main extends IOApp {
 
   private def processStream: Term[IO] => IO[ExitCode] = term =>
     term.readStream
-      .scan(State.empty)(_ ++ _)
+      .scan(BufferState.empty)(_ ++ _)
 //      .takeThrough(_.exitCondition)
-      .evalTap(term.print(_))
+//      .evalTap(term.print)
+      .through(state => term._print(state, state.cursorPosition))
       .compile
       .drain
       .as(ExitCode.Success)

@@ -23,13 +23,13 @@ object Renderable {
 
   object Header {
 
-    private def cursorPositionFromState: State => (Int, Int) = state =>
+    private def cursorPositionFromState: BufferState => (Int, Int) = state =>
       (
         state.cursorPosition % state.lineLength,
         Math.floorDiv(state.cursorPosition, state.lineLength)
       )
 
-    def apply(state: State): Header = Header(
+    def apply(state: BufferState): Header = Header(
       cursorPosition = cursorPositionFromState(state),
       bufferSize = state.buffer.length(),
       lastEffect = state.userEffects.headOption
@@ -60,7 +60,7 @@ object Renderable {
         val (line, rest)  = in.splitAt(sliceEnd)
         lineBuilder(line.mkString :: acc, rest, lineLength)
 
-    def apply(state: State): Body =
+    def apply(state: BufferState): Body =
       Body(lineBuilder(List.empty[String], state.buffer, state.lineLength))
 
     given showInstance: Show[Body] =
