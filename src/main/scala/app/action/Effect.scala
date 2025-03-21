@@ -1,4 +1,4 @@
-package app.effect
+package app.action
 
 import app.UserInput
 import cats.Show

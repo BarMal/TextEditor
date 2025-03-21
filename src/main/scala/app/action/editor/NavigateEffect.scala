@@ -1,8 +1,8 @@
-package app.effect
+package app.action.editor
 
 import app.State
 
-sealed trait CursorOnlyEffect extends Effect {
+sealed trait NavigateEffect extends BufferEffect {
 
   def boundsCheck: State => Boolean
 
@@ -11,58 +11,54 @@ sealed trait CursorOnlyEffect extends Effect {
   def effect: State => State =
     state =>
       State(
-        state.buffer,
-        if (boundsCheck(state)) moveCursor(state)
-        else state.cursorPosition,
-        this :: state.userEffects,
-        state.lineLength
+        buffer = state.buffer,
+        cursorPosition =
+          if (boundsCheck(state)) moveCursor(state) else state.cursorPosition,
+        userEffects = this :: state.userEffects,
+        lineLength = state.lineLength,
+        selected = None
       )
 }
 
-object CursorOnlyEffect {
+object NavigateEffect {
 
-  case object LeftArrow extends CursorOnlyEffect {
+  case object CursorLeft extends NavigateEffect {
     override def moveCursor: State => Int = state => state.cursorPosition - 1
-
     override def boundsCheck: State => Boolean = state => moveCursor(state) >= 0
   }
 
-  case object RightArrow extends CursorOnlyEffect {
+  case object CursorRight extends NavigateEffect {
     override def moveCursor: State => Int = state => state.cursorPosition + 1
-
     override def boundsCheck: State => Boolean = state =>
       moveCursor(state) <= state.buffer.length()
   }
 
-  case object UpArrow extends CursorOnlyEffect {
+  case object CursorUp extends NavigateEffect {
     override def moveCursor: State => Int = state =>
       state.cursorPosition - state.lineLength
-
     override def boundsCheck: State => Boolean = state =>
       moveCursor(state) > state.buffer.length()
   }
 
-  case object DownArrow extends CursorOnlyEffect {
+  case object CursorDown extends NavigateEffect {
     override def moveCursor: State => Int = state =>
       state.cursorPosition + state.lineLength
-
     override def boundsCheck: State => Boolean = state =>
       moveCursor(state) < state.buffer.length()
   }
 
-  case object End extends CursorOnlyEffect {
+  case object CursorToEnd extends NavigateEffect {
     override def moveCursor: State => Int =
       state =>
         Math.min(
           state.buffer.length,
           state.lineLength * ((state.cursorPosition % state.lineLength) + 1)
         )
-
     override def boundsCheck: State => Boolean = state =>
       moveCursor(state) < state.buffer.length()
   }
 
-  case object Home extends CursorOnlyEffect {
+  case object CursorToStart extends NavigateEffect {
     override def moveCursor: State => Int =
       state =>
         Math.max(
@@ -73,15 +69,13 @@ object CursorOnlyEffect {
     override def boundsCheck: State => Boolean = state => moveCursor(state) >= 0
   }
 
-  case object PageUp extends CursorOnlyEffect {
-    override def moveCursor: State => Int = state => state.cursorPosition
-
+  case object CursorToTop extends NavigateEffect {
+    override def moveCursor: State => Int      = state => state.cursorPosition
     override def boundsCheck: State => Boolean = state => true
   }
 
-  case object PageDown extends CursorOnlyEffect {
-    override def moveCursor: State => Int = state => state.cursorPosition
-
+  case object CursorToBottom extends NavigateEffect {
+    override def moveCursor: State => Int      = state => state.cursorPosition
     override def boundsCheck: State => Boolean = state => true
   }
 

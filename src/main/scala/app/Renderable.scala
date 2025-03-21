@@ -1,6 +1,6 @@
 package app
 
-import app.effect.Effect
+import app.action.Effect
 import cats.Show
 
 import scala.annotation.tailrec

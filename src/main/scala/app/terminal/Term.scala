@@ -25,7 +25,7 @@ class Term[F[_]: Async](terminal: Terminal) {
         try term.putCharacter(char)
         catch
           case ex =>
-            logger.error(ex)(s"Error printing character for $t")
+            logger.error(ex)(s"""Error printing character for $t""")
         term.putCharacter
       }
       term.flush()

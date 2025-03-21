@@ -1,8 +1,9 @@
 package app
 
 import app.Modifier.Shift
-import app.effect.Effect.Unexpected
-import app.effect.{BufferEffect, CursorOnlyEffect, Effect, RemoveEffect}
+import app.action.Effect
+import app.action.Effect.Unexpected
+import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
 import com.googlecode.lanterna.input.{KeyStroke, KeyType}
 
 case class UserInput(
@@ -18,17 +19,17 @@ object UserInput {
 
   def nonPrintingHandler(input: UserInput): Effect = input.keyType match
     case KeyType.Character => Unexpected(input)
-    case KeyType.Backspace => RemoveEffect.Backspace
-    case KeyType.ArrowLeft => CursorOnlyEffect.LeftArrow
-    case KeyType.ArrowRight => CursorOnlyEffect.RightArrow
-    case KeyType.ArrowUp => CursorOnlyEffect.UpArrow
-    case KeyType.ArrowDown => CursorOnlyEffect.DownArrow
-    case KeyType.Delete => RemoveEffect.Delete
-    case KeyType.Home => CursorOnlyEffect.Home
-    case KeyType.End => CursorOnlyEffect.End
-    case KeyType.PageUp => CursorOnlyEffect.PageUp
-    case KeyType.PageDown => CursorOnlyEffect.PageDown
-    case KeyType.Enter => BufferEffect.Return
+    case KeyType.Backspace => DeleteEffect.DeleteLeft
+    case KeyType.ArrowLeft => NavigateEffect.CursorLeft
+    case KeyType.ArrowRight => NavigateEffect.CursorRight
+    case KeyType.ArrowUp => NavigateEffect.CursorUp
+    case KeyType.ArrowDown => NavigateEffect.CursorDown
+    case KeyType.Delete => DeleteEffect.DeleteRight
+    case KeyType.Home => NavigateEffect.CursorToStart
+    case KeyType.End => NavigateEffect.CursorToEnd
+    case KeyType.PageUp => NavigateEffect.CursorToTop
+    case KeyType.PageDown => NavigateEffect.CursorToBottom
+    case KeyType.Enter => WriteEffect.Return
     case _ => Unexpected(input)
     case KeyType.Insert => ???
     case KeyType.Escape => ???
@@ -62,7 +63,7 @@ object UserInput {
   def keyStrokeToEffect(input: UserInput): Effect =
     input.modifiers match
       case Shift :: Nil | Nil if input.keyType == KeyType.Character =>
-        BufferEffect.Write(input.character.map(_.toChar).getOrElse(' '))
+        WriteEffect.Write(input.character.map(_.toChar).getOrElse('?'))
       case Nil => nonPrintingHandler(input)
       case _   => combinationHandler(input)
 
