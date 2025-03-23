@@ -12,9 +12,9 @@ import org.virtuslab.yaml.*
 
 import scala.language.postfixOps
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-
 import cats.syntax.parallel.catsSyntaxTuple2Parallel
 import cats.effect.implicits.parallelForGenSpawn
+import com.googlecode.lanterna.input.KeyStroke
 
 object Main extends IOApp {
 
@@ -32,10 +32,11 @@ object Main extends IOApp {
 
   private val cursorBlinkInterval: FiniteDuration = 500 milliseconds
 
-  private def in(term: Term[IO]): fs2.Stream[IO, BufferState] =
+  private def in(term: Term[IO]): fs2.Stream[IO, KeyStroke] =
     term.readStream
-      .scan(BufferState.empty)(_ ++ _)
-      .evalTap(state => stateRef.map(ref => ref.update(_ => state)))
+      .evalTap(keyStroke =>
+        stateRef.flatMap(ref => ref.getAndUpdate(_ ++ keyStroke))
+      )
 
   private def render(term: Term[IO]) =
     fs2.Stream
@@ -46,8 +47,6 @@ object Main extends IOApp {
           elapsedTime,
           cursorBlinkInterval.toMillis
         ) % 2 == 0
-
-        logger.info(s"""Rendering with start $startTime, elapsed $elapsedTime""")
 
         for {
           ref   <- stateRef
@@ -63,76 +62,8 @@ object Main extends IOApp {
         } yield ()
       }
 
-  private def processStream: Term[IO] => IO[ExitCode] = term =>
-    term.readStream
-      .scan(BufferState.empty)(_ ++ _)
-      .parEvalMap(1) { state =>
-        term.print(
-          state,
-          (
-            Math.floorMod(state.cursorPosition, state.lineLength),
-            Math.floorDiv(state.cursorPosition, state.lineLength)
-          ),
-          false
-        )
-      }
-      .compile
-      .drain
-      .as(ExitCode.Success)
-//      .evalTap { state =>
-//        print(
-//          state,
-//          (
-//            Math.floorMod(state.cursorPosition, state.lineLength),
-//            Math.floorDiv(state.cursorPosition, state.lineLength)
-//          ),
-//          Math.floorDiv(
-//            System.currentTimeMillis() - startTime,
-//            cursorBlinkInterval.toMillis
-//          ) % 2 == 0
-//        )
-//      }
-////      .takeThrough(_.exitCondition)
-//      .compile
-//      .drain
-//      .as(ExitCode.Success)
-
-  // Shared state: BufferState (text editor contents) + cursor visibility
-//  Ref.of[IO, (BufferState, Boolean)]((BufferState.empty, false)).flatMap { stateRef =>
-//
-//    // Input Stream: Updates BufferState in Ref
-//    val inputStream: Term[IO] => fs2.Stream[IO, BufferState] = term => term.readStream
-//      .scan(BufferState.empty)(_ ++ _)
-//      .evalTap(newState => stateRef.update { case (_, cursorVisible) => (newState, cursorVisible) })
-//
-//    // Cursor Blink Stream: Toggles cursor visibility in Ref every 500ms
-//    val cursorBlinkStream = fs2.Stream
-//      .awakeEvery[IO](500.millis)
-//      .mapAccumulate(false)((visible, _) => (!visible, !visible))
-//      .map(_._2)
-//      .evalMap(cursorVisible => stateRef.update { case (state, _) => (state, cursorVisible) })
-//
-//    // Render Stream: Periodically reads Ref & updates terminal
-//    val renderStream: Term[IO] => fs2.Stream[IO, (BufferState, Boolean)] = term => fs2.Stream
-//      .awakeEvery[IO](16.millis) // ~60FPS rendering
-//      .evalMap(_ => stateRef.get)
-//      .evalTap { case (state, cursorVisible) =>
-//        term.print(
-//          state,
-//          (
-//            Math.floorMod(state.cursorPosition, state.lineLength),
-//            Math.floorDiv(state.cursorPosition, state.lineLength)
-//          ),
-//          cursorVisible
-//        )
-//      }
-//
-//    // Run all streams concurrently
-//    (inputStream, cursorBlinkStream).parTupled *> renderStream.as(ExitCode.Success)
-//  }
-
   private def newProcess: Term[IO] => IO[ExitCode] = term =>
-    render(term).evalTap(_ => in(term).compile.drain).compile.drain.as(ExitCode.Success)
+    render(term).concurrently(in(term)).compile.drain.as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     terminal
