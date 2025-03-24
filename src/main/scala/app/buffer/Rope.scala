@@ -24,13 +24,14 @@ object Rope {
   def empty: Rope = Node(None, None)
 
   case class Node(left: Option[Rope], right: Option[Rope]) extends Rope:
-    override def weight: Int = left
-      .map {
-        case Node(l, r) =>
-          l.map(_.weight).getOrElse(0) + r.map(_.weight).getOrElse(0)
-        case Leaf(value) => value.length
-      }
-      .getOrElse(0)
+    override def weight: Int = {
+      def subtreeWeight(rope: Option[Rope]): Int = rope match
+        case Some(Node(l, r))  => subtreeWeight(l) + subtreeWeight(r)
+        case Some(Leaf(value)) => value.length
+        case _                 => 0
+
+      subtreeWeight(left)
+    }
 
   case class Leaf(value: String) extends Rope:
     override def weight: Int = value.length
