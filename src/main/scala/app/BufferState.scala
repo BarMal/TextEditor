@@ -6,8 +6,6 @@ import app.action.Effect
 import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
 import cats.Show
 import com.googlecode.lanterna.input.KeyStroke
-import cats.data.{NonEmptySet, State}
-import cats.kernel.Monoid
 
 //case class State(
 //    bufferState: BufferState,
@@ -85,5 +83,46 @@ object BufferState {
 
   given showInstance: Show[BufferState] = (t: BufferState) =>
     Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))
+
+}
+
+sealed trait Transform[A, B] {
+  def f(a: A): B
+  def g(b: B): A
+}
+
+case class RefState(
+    buffer: String,
+    cursorPosition: Int,
+    userEffects: List[Effect],
+    lineLength: Int,
+    selected: Option[Range]
+)
+
+object RefState {
+  def empty: RefState = RefState("", 0, List.empty[Effect], 30, None)
+}
+
+object TransformInstances {
+
+  given bufferToRefState: Transform[BufferState, RefState] =
+    new Transform[BufferState, RefState] {
+
+      override def f(a: BufferState): RefState = RefState(
+        buffer = a.buffer.result(),
+        cursorPosition = a.cursorPosition,
+        userEffects = a.userEffects,
+        lineLength = a.lineLength,
+        selected = a.selected
+      )
+
+      override def g(b: RefState): BufferState = BufferState(
+        buffer = new StringBuilder(b.buffer),
+        cursorPosition = b.cursorPosition,
+        userEffects = b.userEffects,
+        lineLength = b.lineLength,
+        selected = b.selected
+      )
+    }
 
 }

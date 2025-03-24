@@ -3,18 +3,16 @@ package app
 import app.config.AppConfig
 import app.config.AppConfig.yamlDecoder
 import app.terminal.Term
-import cats.effect.{ExitCode, IO, IOApp, Ref, Resource}
-import fs2.Chunk
-import fs2.Chunk.Queue
+import cats.effect.*
+import com.googlecode.lanterna.input.KeyStroke
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.virtuslab.yaml.*
+import app.TransformInstances.bufferToRefState
+import cats.effect.std.Queue
 
-import scala.language.postfixOps
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import cats.syntax.parallel.catsSyntaxTuple2Parallel
-import cats.effect.implicits.parallelForGenSpawn
-import com.googlecode.lanterna.input.KeyStroke
+import scala.language.postfixOps
 
 object Main extends IOApp {
 
@@ -27,16 +25,22 @@ object Main extends IOApp {
   private def terminal: Resource[IO, Term[IO]] =
     Resource.make(Term.createF[IO])(_.close)
 
-  private val stateRef: IO[Ref[IO, BufferState]] =
+  private val stateRef: IO[Ref[IO, RefState]] =
+    Ref.of[IO, RefState](RefState.empty)
+
+  private val bufferStateRef: IO[Ref[IO, BufferState]] =
     Ref.of[IO, BufferState](BufferState.empty)
 
-  private val cursorBlinkInterval: FiniteDuration = 500 milliseconds
+  private val stateQueue: IO[Queue[IO, BufferState]] =
+    Queue.unbounded[IO, BufferState]
 
   private def in(term: Term[IO]): fs2.Stream[IO, KeyStroke] =
     term.readStream
       .evalTap(keyStroke =>
-        stateRef.flatMap(ref => ref.getAndUpdate(_ ++ keyStroke))
+        bufferStateRef.flatMap(ref => ref.update(_ ++ keyStroke))
       )
+
+  private val cursorBlinkInterval: FiniteDuration = 500 milliseconds
 
   private def render(term: Term[IO]) =
     fs2.Stream
@@ -49,7 +53,7 @@ object Main extends IOApp {
         ) % 2 == 0
 
         for {
-          ref   <- stateRef
+          ref   <- bufferStateRef
           state <- ref.get
           _ <- term.print(
             state,

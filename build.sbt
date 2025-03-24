@@ -11,15 +11,16 @@ lazy val root = (project in file("."))
 
 libraryDependencies ++= Seq(
   "org.typelevel"          %% "cats-effect" % "3.6-623178c",
-  "co.fs2"                 %% "fs2-core"    % "3.12.0-RC1",
+  "co.fs2"                 %% "fs2-core"    % "3.12.0-RC2",
   "com.googlecode.lanterna" % "lanterna"    % "3.2.0-alpha1",
-  "org.virtuslab"          %% "scala-yaml"  % "0.3.0"
+  "org.virtuslab"          %% "scala-yaml"  % "0.3.0",
+  "org.scalatest"          %% "scalatest"   % "3.2.19" % "test"
 )
 
 val log4CatsVersion = "2.7.0"
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "log4cats-core" % log4CatsVersion, // Only if you want to Support Any Backend
-  "org.typelevel" %% "log4cats-slf4j" % log4CatsVersion, // Direct Slf4j Support - Recommend
-  "ch.qos.logback" % "logback-classic" % "1.5.17"
+  "org.typelevel" %% "log4cats-core" % log4CatsVersion,
+  "org.typelevel" %% "log4cats-slf4j" % log4CatsVersion,
+  "ch.qos.logback" % "logback-classic" % "1.5.18"
 )
