@@ -1,11 +1,18 @@
 package app.buffer
 
-import app.buffer.Rope.{Leaf, Node}
-
-sealed trait Rope {
+trait Rope(implicit balance: Balance) {
   def weight: Int
 
-  def collect: String = {
+  def isWeightBalanced: Boolean
+  def isHeightBalanced: Boolean
+
+  def ::(that: Rope): Rope = concat(that)
+
+  def concat(that: Rope): Node = Node(Some(this), Some(that)).rebalance()
+
+  def rebuild: Rope = Rope(this.collect())
+
+  def collect(): String = {
     def _collect(curr: Rope, acc: List[String]): List[String] =
       curr match
         case Node(Some(left), Some(right)) =>
@@ -21,18 +28,15 @@ sealed trait Rope {
 
 object Rope {
 
-  def empty: Rope = Node(None, None)
+  private val chunkSize: Int = 64
 
-  case class Node(left: Option[Rope], right: Option[Rope]) extends Rope:
-    override def weight: Int = {
-      def subtreeWeight(rope: Option[Rope]): Int = rope match
-        case Some(Node(l, r))  => subtreeWeight(l) + subtreeWeight(r)
-        case Some(Leaf(value)) => value.length
-        case _                 => 0
-
-      subtreeWeight(left)
+  def apply(in: String)(implicit balance: Balance): Rope =
+    if in.length <= chunkSize then Leaf(in)
+    else {
+      val (left, right) = in.splitAt(Math.floorDiv(in.length, 2))
+      Node(Some(Rope(left)), Some(Rope(right)))
     }
 
-  case class Leaf(value: String) extends Rope:
-    override def weight: Int = value.length
+  def empty(implicit balance: Balance): Rope = Node(None, None)
+
 }
