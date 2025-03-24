@@ -1,8 +1,7 @@
 package app.buffer
 
-case class Node(left: Option[Rope], right: Option[Rope])(implicit
-    balance: Balance
-) extends Rope:
+case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
+    extends Rope:
 
   override def weight: Int = {
     def subtreeWeight(rope: Option[Rope]): Int = rope match
@@ -13,14 +12,31 @@ case class Node(left: Option[Rope], right: Option[Rope])(implicit
     subtreeWeight(left)
   }
 
-  def rebalance(): Node =
-    if isWeightBalanced then this
-    else if (left.mapOr(_.weight)(0) < right.mapOr(_.weight)(0)) this
-    else this
+  override def isHeightBalanced: Boolean =
+    Math.abs(height(left) - height(right)) <= balance.heightBalance
 
   override def isWeightBalanced: Boolean = Math.abs(
     left.mapOr(_.weight)(0) - right.mapOr(_.weight)(0)
   ) <= balance.weightBalance
+
+  def rebalance: Node =
+    if isWeightBalanced then this
+    else if left.mapOr(_.weight)(0) < right.mapOr(_.weight)(0) then rotateLeft()
+    else rotateRight()
+
+  private def rotateLeft(): Node = right
+    .map {
+      case Node(l, r) => Node(Some(Node(left, l)), r)
+      case Leaf(_)    => this
+    }
+    .getOrElse(this)
+
+  private def rotateRight(): Node = left
+    .map {
+      case Node(l, r) => Node(l, Some(Node(r, right)))
+      case Leaf(_)    => this
+    }
+    .getOrElse(this)
 
   private def height(node: Option[Rope]): Int =
     node.mapOr {
@@ -28,13 +44,14 @@ case class Node(left: Option[Rope], right: Option[Rope])(implicit
       case Leaf(_)    => 1
     }(0)
 
-  override def isHeightBalanced: Boolean =
-    Math.abs(height(left) - height(right)) <= balance.heightBalance
+  override def index(i: Int): Char = ???
+
+  override def split(index: Int): (Rope, Rope) = ???
 
 object Node {
-  def apply(left: Rope)(implicit balance: Balance): Node =
+  def apply(left: Rope)(using balance: Balance): Node =
     Node(Some(left), None)
 
-  def apply(left: Rope, right: Rope)(implicit balance: Balance): Node =
+  def apply(left: Rope, right: Rope)(using balance: Balance): Node =
     Node(Some(left), Some(right))
 }

@@ -40,14 +40,17 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     root.isHeightBalanced shouldBe false
     root.isWeightBalanced shouldBe false
 
-    val rebalancedRoot: Rope = root.rebuild
+    val rebuiltRoot: Rope = root.rebuild
+    rebuiltRoot.isHeightBalanced shouldBe true
+    rebuiltRoot.isWeightBalanced shouldBe true
 
+    val rebalancedRoot: Rope = root.rebalance
     rebalancedRoot.isHeightBalanced shouldBe true
     rebalancedRoot.isWeightBalanced shouldBe true
   }
 
   trait RopeSpecScope {
-    implicit val balance: Balance = Balance(3, 1)
+    given balance: Balance = Balance(3, 1)
   }
 
 }

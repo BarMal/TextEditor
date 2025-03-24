@@ -7,7 +7,7 @@ sealed trait DeleteEffect extends BufferEffect {
   protected def deleteNLeft(state: BufferState, n: Int): BufferState = {
     val (left, right) = state.buffer.splitAt(state.cursorPosition)
     BufferState(
-      buffer = left.dropRight(n).append(right),
+      buffer = left.dropRight(n) ++ right,
       cursorPosition = Math.max(state.cursorPosition - n, 0),
       userEffects = this :: state.userEffects,
       lineLength = state.lineLength,
@@ -18,7 +18,7 @@ sealed trait DeleteEffect extends BufferEffect {
   protected def deleteNRight(state: BufferState, n: Int): BufferState = {
     val (left, right) = state.buffer.splitAt(state.cursorPosition)
     BufferState(
-      buffer = left.append(right.drop(n)),
+      buffer = left ++ right.drop(n),
       cursorPosition =
         Math.min(state.cursorPosition + n, state.buffer.length()),
       userEffects = this :: state.userEffects,

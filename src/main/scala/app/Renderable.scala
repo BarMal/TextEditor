@@ -50,14 +50,14 @@ object Renderable {
     @tailrec
     private def lineBuilder(
         acc: List[String],
-        in: StringBuilder,
+        in: String,
         lineLength: Int
     ): List[String] =
       if (in.isEmpty) acc.reverse
       else
         val maybeSliceEnd: Int = in.lastIndexOfSlice("\\s", lineLength)
-        val sliceEnd = if (maybeSliceEnd < 0) lineLength else maybeSliceEnd
-        val (line, rest)  = in.splitAt(sliceEnd)
+        val sliceEnd     = if (maybeSliceEnd < 0) lineLength else maybeSliceEnd
+        val (line, rest) = in.splitAt(sliceEnd)
         lineBuilder(line.mkString :: acc, rest, lineLength)
 
     def apply(state: BufferState): Body =

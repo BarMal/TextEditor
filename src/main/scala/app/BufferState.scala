@@ -28,7 +28,7 @@ case class MenuState() extends Focusable[MenuState] {
   override def ++(in: KeyStroke): MenuState = this
 }
 
-//implicit val stateMonoid: Monoid[BufferState] = new Monoid[BufferState] {
+//given stateMonoid: Monoid[BufferState] = new Monoid[BufferState] {
 //  override def empty: BufferState = BufferState.empty
 //
 //  override def combine(x: BufferState, y: BufferState): BufferState =
@@ -41,7 +41,7 @@ case class MenuState() extends Focusable[MenuState] {
 //    )
 //}
 //
-//implicit val keyStrokeMonoid: Monoid[KeyStroke] = new Monoid[KeyStroke] {
+//given keyStrokeMonoid: Monoid[KeyStroke] = new Monoid[KeyStroke] {
 //
 //  override def empty: KeyStroke = KeyStroke
 //
@@ -54,7 +54,7 @@ case class MenuState() extends Focusable[MenuState] {
 //val bar = foo.runEmpty
 
 case class BufferState(
-    buffer: StringBuilder,
+    buffer: String,
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
@@ -79,50 +79,9 @@ case class BufferState(
 object BufferState {
 
   def empty =
-    new BufferState(new StringBuilder(""), 0, List.empty[Effect], 30, None)
+    new BufferState("", 0, List.empty[Effect], 50, None)
 
-  given showInstance: Show[BufferState] = (t: BufferState) =>
-    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))
-
-}
-
-sealed trait Transform[A, B] {
-  def f(a: A): B
-  def g(b: B): A
-}
-
-case class RefState(
-    buffer: String,
-    cursorPosition: Int,
-    userEffects: List[Effect],
-    lineLength: Int,
-    selected: Option[Range]
-)
-
-object RefState {
-  def empty: RefState = RefState("", 0, List.empty[Effect], 30, None)
-}
-
-object TransformInstances {
-
-  given bufferToRefState: Transform[BufferState, RefState] =
-    new Transform[BufferState, RefState] {
-
-      override def f(a: BufferState): RefState = RefState(
-        buffer = a.buffer.result(),
-        cursorPosition = a.cursorPosition,
-        userEffects = a.userEffects,
-        lineLength = a.lineLength,
-        selected = a.selected
-      )
-
-      override def g(b: RefState): BufferState = BufferState(
-        buffer = new StringBuilder(b.buffer),
-        cursorPosition = b.cursorPosition,
-        userEffects = b.userEffects,
-        lineLength = b.lineLength,
-        selected = b.selected
-      )
-    }
+//  given showInstance: Show[BufferState] = (t: BufferState) =>
+//    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))
 
 }

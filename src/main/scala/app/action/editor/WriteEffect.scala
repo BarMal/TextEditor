@@ -8,7 +8,10 @@ sealed trait WriteEffect extends BufferEffect {
   protected def write[T]: BufferState => T => BufferState = state =>
     in =>
       BufferState(
-        buffer = state.buffer.insert(state.cursorPosition, in),
+        buffer = {
+          val (pre, post) = state.buffer.splitAt(state.cursorPosition)
+          (pre + in) + post
+        },
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,
