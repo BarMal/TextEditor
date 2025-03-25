@@ -2,7 +2,8 @@ package app
 
 import app.config.AppConfig
 import app.config.AppConfig.yamlDecoder
-import app.terminal.{Reader, Renderer, Term, Writer}
+import app.render.Renderer
+import app.terminal.{Reader, Term, Writer}
 import cats.effect.*
 import com.googlecode.lanterna.terminal.Terminal
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -32,9 +33,9 @@ object Main extends IOApp {
         fs2.Stream
           .constant(System.currentTimeMillis())
           .metered[IO](16 milliseconds)
-          .evalTap { startTime =>
+          .evalTap(startTime =>
             state.get.flatMap(Renderer.render(writer, startTime, _))
-          }
+          )
           .void
 
   private def in: Reader[IO] => Ref[IO, BufferState] => fs2.Stream[IO, Unit] =

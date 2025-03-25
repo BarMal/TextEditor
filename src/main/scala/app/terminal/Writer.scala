@@ -1,5 +1,6 @@
 package app.terminal
 
+import app.render.Element
 import cats.{Applicative, Show}
 import cats.effect.kernel.Async
 import com.googlecode.lanterna.TextColor.ANSI
@@ -49,18 +50,6 @@ class Writer[F[_]: Async](terminal: Terminal) {
           setColours(foreground)(background) *>
             _print(showable) *>
             defaultTerminalColours
-
-  def printWithColours[T: Show]
-      : T => TextColor.ANSI => TextColor.ANSI => F[Unit] =
-    showable =>
-      foreground =>
-        background =>
-          clear *>
-            _printWithColours(showable)(foreground)(background)
-            *> defaultTerminalColours *> flush
-
-  def print[T: Show]: T => F[Unit] = showable =>
-    clear *> _print(showable) *> flush
 
   def print(elements: Element*): F[Unit] =
     clear *> elements.traverse(elem =>

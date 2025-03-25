@@ -1,10 +1,8 @@
 package app
 
-import app.terminal.Renderable.{Body, Header}
 import app.UserInput.flatten
 import app.action.Effect
 import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
-import cats.Show
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(

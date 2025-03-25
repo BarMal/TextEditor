@@ -1,8 +1,9 @@
-package app.terminal
+package app.render
 
 import app.BufferState
-import app.terminal.Renderable.{Body, Header, Spacer}
+import app.terminal.Writer
 import cats.effect.kernel.Async
+import com.googlecode.lanterna.TextColor
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -22,10 +23,12 @@ object Renderer {
   ): F[Unit] =
     writer
       .print(
-        Header(state).asElement,
-        Spacer.asElement,
-        Spacer.asElement,
-        Body(state, cursorVisible(startTime)).asElement
+        Header(state).asElement.padTo(state.lineLength),
+        Spacer(backgroundColour = TextColor.ANSI.RED).asElement
+          .padTo(state.lineLength),
+        Spacer(backgroundColour = TextColor.ANSI.RED).asElement
+          .padTo(state.lineLength),
+        Body(state, cursorVisible(startTime)).asElement.padTo(state.lineLength)
       )
 
 }
