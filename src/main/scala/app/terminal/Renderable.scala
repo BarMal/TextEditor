@@ -1,5 +1,6 @@
-package app
+package app.terminal
 
+import app.BufferState
 import app.action.Effect
 import cats.Show
 
@@ -60,8 +61,27 @@ object Renderable {
         val (line, rest) = in.splitAt(sliceEnd)
         lineBuilder(line.mkString :: acc, rest, lineLength)
 
-    def apply(state: BufferState): Body =
-      Body(lineBuilder(List.empty[String], state.buffer, state.lineLength))
+    private def insertCursor(
+        state: BufferState,
+        cursorCharacter: Char = '\u2588'
+    ): String = {
+      val (pre, post) = state.buffer.splitAt(state.cursorPosition)
+      (pre + cursorCharacter) + post.drop(1)
+    }
+
+    def apply(
+        state: BufferState,
+        isCursorVisible: Boolean,
+        cursorCharacter: Char = '\u2588'
+    ): Body =
+      Body(
+        lineBuilder(
+          List.empty[String],
+          if (isCursorVisible) insertCursor(state, cursorCharacter)
+          else state.buffer,
+          state.lineLength
+        )
+      )
 
     given showInstance: Show[Body] =
       (t: Body) => t.lines.map(line => s"\t$line").mkString("\n")

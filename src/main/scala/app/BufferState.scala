@@ -1,6 +1,6 @@
 package app
 
-import app.Renderable.{Body, Header}
+import app.terminal.Renderable.{Body, Header}
 import app.UserInput.flatten
 import app.action.Effect
 import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
