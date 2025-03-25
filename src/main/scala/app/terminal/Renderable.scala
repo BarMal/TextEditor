@@ -3,24 +3,44 @@ package app.terminal
 import app.BufferState
 import app.action.Effect
 import cats.Show
+import com.googlecode.lanterna.TextColor
+import com.googlecode.lanterna.TextColor.ANSI
 
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 
-sealed trait Renderable
+case class Element(
+    repr: String,
+    foregroundColour: ANSI,
+    backgroundColour: ANSI
+)
+
+object Element {
+  given showInstance: Show[Element] = (e: Element) => e.repr
+}
+
+sealed trait Renderable {
+  def asElement: Element
+}
 
 object Renderable {
 
   given showInstance: Show[Renderable] = {
     case header: Header => Header.showInstance.show(header)
     case body: Body     => Body.showInstance.show(body)
+    case Spacer         => "\n"
   }
+
+  case object Spacer extends Renderable:
+    override def asElement: Element = Element("\n", ANSI.WHITE, ANSI.BLACK)
 
   case class Header(
       cursorPosition: (Int, Int),
       bufferSize: Int,
       lastEffect: Option[Effect]
-  ) extends Renderable
+  ) extends Renderable:
+    override def asElement: Element =
+      Element(Header.showInstance.show(this), ANSI.WHITE, ANSI.RED)
 
   object Header {
 
@@ -44,7 +64,10 @@ object Renderable {
 
   }
 
-  case class Body(lines: List[String]) extends Renderable
+  case class Body(lines: List[String]) extends Renderable {
+    override def asElement: Element =
+      Element(Body.showInstance.show(this), ANSI.WHITE, ANSI.BLACK)
+  }
 
   object Body {
 

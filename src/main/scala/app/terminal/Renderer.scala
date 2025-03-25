@@ -1,7 +1,7 @@
 package app.terminal
 
 import app.BufferState
-import app.terminal.Renderable.{Body, Header}
+import app.terminal.Renderable.{Body, Header, Spacer}
 import cats.effect.kernel.Async
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -21,9 +21,11 @@ object Renderer {
       state: BufferState
   ): F[Unit] =
     writer
-      .print[Renderable](
-        Header(state),
-        Body(state, cursorVisible(startTime))
+      .print(
+        Header(state).asElement,
+        Spacer.asElement,
+        Spacer.asElement,
+        Body(state, cursorVisible(startTime)).asElement
       )
 
 }

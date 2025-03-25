@@ -46,24 +46,28 @@ class Writer[F[_]: Async](terminal: Terminal) {
     showable =>
       foreground =>
         background =>
-          setColours(foreground)(background) *> print(
-            showable
-          ) *> defaultTerminalColours
+          setColours(foreground)(background) *>
+            _print(showable) *>
+            defaultTerminalColours
 
   def printWithColours[T: Show]
       : T => TextColor.ANSI => TextColor.ANSI => F[Unit] =
     showable =>
       foreground =>
         background =>
-          clear *> _printWithColours(showable)(foreground)(
-            background
-          ) *> defaultTerminalColours *> flush
-
-  def print[T: Show](showables: T*): F[Unit] =
-    clear *> showables.traverse(_print) *> flush
+          clear *>
+            _printWithColours(showable)(foreground)(background)
+            *> defaultTerminalColours *> flush
 
   def print[T: Show]: T => F[Unit] = showable =>
     clear *> _print(showable) *> flush
+
+  def print(elements: Element*): F[Unit] =
+    clear *> elements.traverse(elem =>
+      _printWithColours[String](elem.repr)(elem.foregroundColour)(
+        elem.backgroundColour
+      )
+    ) *> flush
 
   extension [A](f: F[A]) {
     def void: F[Unit] = Applicative[F].void(f)
