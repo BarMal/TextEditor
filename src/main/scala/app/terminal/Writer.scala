@@ -1,14 +1,16 @@
 package app.terminal
 
 import app.render.Element
-import cats.{Applicative, Show}
 import cats.effect.kernel.Async
+import cats.implicits.{catsSyntaxApplyOps, toFlatMapOps, toTraverseOps}
+import cats.{Applicative, Show}
+import com.googlecode.lanterna.TextColor
 import com.googlecode.lanterna.TextColor.ANSI
 import com.googlecode.lanterna.terminal.Terminal
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
-import cats.implicits.{catsSyntaxApplyOps, toTraverseOps}
-import com.googlecode.lanterna.TextColor
+
+import scala.util.{Failure, Success, Try}
 
 class Writer[F[_]: Async](terminal: Terminal) {
 
@@ -26,10 +28,13 @@ class Writer[F[_]: Async](terminal: Terminal) {
   private def flush: F[Unit] = Async[F].blocking(terminal.flush())
 
   private def safePrint: Char => F[Unit] = char =>
-    try Async[F].blocking(terminal.putCharacter(char))
-    catch
-      case ex =>
-        logger.error(ex)(s"""Error printing character""")
+    Async[F]
+      .blocking(Try(terminal.putCharacter(char)))
+      .flatMap {
+        case Success(_) => Applicative[F].unit
+        case Failure(exception) =>
+          logger.error(exception)(s"""Error printing character""")
+      }
 
   private def setColours: TextColor.ANSI => TextColor.ANSI => F[Unit] =
     foreground =>

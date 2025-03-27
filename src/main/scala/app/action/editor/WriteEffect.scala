@@ -22,13 +22,18 @@ sealed trait WriteEffect extends BufferEffect {
 object WriteEffect {
 
   case class Write(char: Char) extends WriteEffect {
-
-    override def effect: BufferState => BufferState = state => write(state)(char)
-
+    override def effect: BufferState => BufferState = state =>
+      write(state)(char)
   }
 
   case object Return extends WriteEffect {
-    override def effect: BufferState => BufferState = state => write(state)('\n')
+    override def effect: BufferState => BufferState = state =>
+      write(state)('\n')
+  }
+
+  case object Tab extends WriteEffect {
+    override def effect: BufferState => BufferState = state =>
+      write(state)('\t')
   }
 
 }

@@ -19,8 +19,7 @@ sealed trait DeleteEffect extends BufferEffect {
     val (left, right) = state.buffer.splitAt(state.cursorPosition)
     BufferState(
       buffer = left ++ right.drop(n),
-      cursorPosition =
-        Math.min(state.cursorPosition + n, state.buffer.length()),
+      cursorPosition = Math.min(left.length, state.buffer.length()),
       userEffects = this :: state.userEffects,
       lineLength = state.lineLength,
       selected = None
