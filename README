@@ -1,0 +1,19 @@
+A simple text editor written in Scala 3 using fs2 and lanterna
+
+TODO: 
+
+- Refactor read/write to use Try
+- Refactor and complete keystroke => effect 
+  (this should prevent printable control characters breaking) 
+- Finish implementing Rope
+- Consider using the State monad to handle state
+- Finish implementing behaviours (shift to select, etc)
+- Implement reading from/writing to file
+- Implement config
+- Add menu state
+- Undo/redo
+- Fixed view to keep current cursor in the center
+- Word wrapping in view
+- Consider using higher lanterna abstraction for better graphical performance/aesthetics
+- Consider tree-sitter for syntax highlighting 
+- Line numbering
