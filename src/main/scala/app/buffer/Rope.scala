@@ -10,7 +10,7 @@ trait Rope(using balance: Balance) {
 
   def rebuild: Rope = Rope(this.collect())
 
-  def index(i: Int): Char
+  def indexOf(i: Int): Option[Char]
   
   def split(index: Int): (Rope, Rope)
   

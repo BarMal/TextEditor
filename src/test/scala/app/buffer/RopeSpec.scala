@@ -29,7 +29,6 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "evaluate and correct balance" in new RopeSpecScope {
-
     val depth4: Node  = Node(Leaf("Deepest"))
     val depth3a: Node = Node(depth4, Node(Leaf("Up1")))
     val depth3b: Node = Node(Leaf("Up1a"), Leaf("Up1b"))
@@ -47,6 +46,26 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     val rebalancedRoot: Rope = root.rebalance
     rebalancedRoot.isHeightBalanced shouldBe true
     rebalancedRoot.isWeightBalanced shouldBe true
+  }
+
+  it should "index" in new RopeSpecScope {
+    val c: Node = Node(Leaf("Hello "), Leaf("my "))
+    val g: Node = Node(Leaf("na"), Leaf("me i"))
+    val h: Node = Node(Leaf("s"), Leaf(" Barney"))
+    val d: Node = Node(g, h)
+    val b: Node = Node(c, d)
+    val a: Node = Node(b)
+
+    a.collect().zipWithIndex.map {
+      case (char, index) => a.indexOf(index) shouldBe Some(char)
+    }
+
+    a.indexOf(-1) shouldBe None
+    a.indexOf(0) shouldBe Some('H')
+    a.indexOf(10) shouldBe Some('a')
+    a.indexOf(12) shouldBe Some('e')
+    a.indexOf(22) shouldBe Some('y')
+    a.indexOf(23) shouldBe None
   }
 
   trait RopeSpecScope {
