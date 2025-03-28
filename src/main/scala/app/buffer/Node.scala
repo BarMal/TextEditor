@@ -19,10 +19,16 @@ case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
     left.mapOr(_.weight)(0) - right.mapOr(_.weight)(0)
   ) <= balance.weightBalance
 
-  def rebalance: Node =
+  override def rebalance: Rope =
     if isWeightBalanced then this
     else if left.mapOr(_.weight)(0) < right.mapOr(_.weight)(0) then rotateLeft()
     else rotateRight()
+
+  override def splitAt(index: Int): (Rope, Rope) = ???
+
+  override def indexOf(i: Int): Option[Char] =
+    if weight > i then left.flatMap(_.indexOf(i))
+    else right.flatMap(_.indexOf(i - weight))
 
   private def rotateLeft(): Node = right
     .map {
@@ -43,12 +49,6 @@ case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
       case Node(l, r) => Math.max(height(l), height(r)) + 1
       case Leaf(_)    => 1
     }(0)
-
-  override def indexOf(i: Int): Option[Char] =
-    if weight > i then left.flatMap(_.indexOf(i))
-    else right.flatMap(_.indexOf(i - weight))
-
-  override def split(index: Int): (Rope, Rope) = ???
 
 object Node {
   def apply(left: Rope)(using balance: Balance): Node =

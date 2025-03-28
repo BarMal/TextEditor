@@ -68,8 +68,29 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     a.indexOf(23) shouldBe None
   }
 
+  it should "split" in new RopeSpecScope {
+    val c: Node = Node(Leaf("Hello "), Leaf("my "))
+    val g: Node = Node(Leaf("na"), Leaf("me i"))
+    val h: Node = Node(Leaf("s"), Leaf(" Barney"))
+    val d: Node = Node(g, h)
+    val b: Node = Node(c, d)
+    val a: Node = Node(b)
+
+    val (left, right) = a.splitAt(12)
+    left.collect() shouldBe "Hello my nam"
+    right.collect() shouldBe "e is Barney"
+
+    val (nothing, all) = a.splitAt(0)
+    nothing.collect() shouldBe ""
+    all.collect() shouldBe a.collect()
+  }
+
+  it should "insert" in new RopeSpecScope {
+
+  }
+
   trait RopeSpecScope {
-    given balance: Balance = Balance(3, 1)
+    given balance: Balance = Balance(3, 1, 5)
   }
 
 }

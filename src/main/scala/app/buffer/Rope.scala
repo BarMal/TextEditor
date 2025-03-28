@@ -10,9 +10,22 @@ trait Rope(using balance: Balance) {
 
   def rebuild: Rope = Rope(this.collect())
 
+  def rebalance: Rope
+
   def indexOf(i: Int): Option[Char]
   
-  def split(index: Int): (Rope, Rope)
+  def splitAt(index: Int): (Rope, Rope)
+
+  def insert(index: Int, char: Char): Rope = {
+    val (pre, post) = splitAt(index)
+    (post :: Leaf(char.toString) :: pre).rebalance
+  }
+
+  def delete(start: Int, end: Int): Rope = {
+    val (keepStart, _) = splitAt(start)
+    val (_, keepEnd) = splitAt(end)
+    Node(keepStart, keepEnd).rebalance
+  }
   
   def collect(): String = {
     def _collect(curr: Rope, acc: List[String]): List[String] =
@@ -30,10 +43,8 @@ trait Rope(using balance: Balance) {
 
 object Rope {
 
-  private val chunkSize: Int = 64
-
   def apply(in: String)(using balance: Balance): Rope =
-    if in.length <= chunkSize then Leaf(in)
+    if in.length <= balance.leafChunkSize then Leaf(in)
     else {
       val (left, right) = in.splitAt(Math.floorDiv(in.length, 2))
       Node(Some(Rope(left)), Some(Rope(right)))
