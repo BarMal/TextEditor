@@ -1,8 +1,14 @@
 package app
 
 import app.UserInput.flatten
+import app.WriteMode.Write
 import app.action.Effect
-import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
+import app.action.editor.{
+  DeleteEffect,
+  NavigateEffect,
+  StateChangeEffect,
+  WriteEffect
+}
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(
@@ -24,6 +30,16 @@ sealed trait Focusable[T <: Focusable[T]] {
 case class MenuState() extends Focusable[MenuState] {
 
   override def ++(in: KeyStroke): MenuState = this
+}
+
+sealed trait WriteMode
+object WriteMode {
+  case object Write     extends WriteMode
+  case object Overwrite extends WriteMode
+
+  def flip(mode: WriteMode): WriteMode = mode match
+    case Write     => Overwrite
+    case Overwrite => Write
 }
 
 //given stateMonoid: Monoid[BufferState] = new Monoid[BufferState] {
@@ -56,28 +72,31 @@ case class BufferState(
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
-    selected: Option[Range]
+    selected: Option[Range],
+    writeMode: WriteMode
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
     UserInput.keyStrokeToEffect(in.flatten) match
-      case effect: WriteEffect    => effect.effect(this)
-      case effect: DeleteEffect   => effect.effect(this)
-      case effect: NavigateEffect => effect.effect(this)
+      case effect: WriteEffect       => effect.effect(this)
+      case effect: DeleteEffect      => effect.effect(this)
+      case effect: NavigateEffect    => effect.effect(this)
+      case effect: StateChangeEffect => effect.effect(this)
       case others =>
         BufferState(
           buffer = buffer,
           cursorPosition = cursorPosition,
           userEffects = others :: userEffects,
           lineLength = lineLength,
-          selected = None
+          selected = None,
+          writeMode = Write
         )
 }
 
 object BufferState {
 
   def empty =
-    new BufferState("", 0, List.empty[Effect], 50, None)
+    new BufferState("", 0, List.empty[Effect], 50, None, Write)
 
 //  given showInstance: Show[BufferState] = (t: BufferState) =>
 //    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))

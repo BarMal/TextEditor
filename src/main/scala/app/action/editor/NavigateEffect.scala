@@ -16,7 +16,8 @@ sealed trait NavigateEffect extends BufferEffect {
           if (boundsCheck(state)) moveCursor(state) else state.cursorPosition,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,
-        selected = None
+        selected = None,
+        writeMode = state.writeMode
       )
 }
 

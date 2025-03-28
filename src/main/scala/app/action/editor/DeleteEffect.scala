@@ -11,7 +11,8 @@ sealed trait DeleteEffect extends BufferEffect {
       cursorPosition = Math.max(state.cursorPosition - n, 0),
       userEffects = this :: state.userEffects,
       lineLength = state.lineLength,
-      selected = None
+      selected = None,
+      writeMode = state.writeMode
     )
   }
 
@@ -22,7 +23,8 @@ sealed trait DeleteEffect extends BufferEffect {
       cursorPosition = Math.min(left.length, state.buffer.length()),
       userEffects = this :: state.userEffects,
       lineLength = state.lineLength,
-      selected = None
+      selected = None,
+      writeMode = state.writeMode
     )
   }
 

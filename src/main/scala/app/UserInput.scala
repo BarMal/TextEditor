@@ -1,8 +1,8 @@
 package app
 
 import app.action.Effect
-import app.action.Effect.Unexpected
-import app.action.editor.{DeleteEffect, NavigateEffect, WriteEffect}
+import app.action.Effect.{Escape, Unexpected}
+import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
 import com.googlecode.lanterna.input.{KeyStroke, KeyType}
 
 case class UserInput(
@@ -15,7 +15,7 @@ case class UserInput(
 object UserInput {
 
   def keyStrokeToEffect(input: UserInput): Effect = input.keyType match
-    case KeyType.Character  => WriteEffect.Write(input.character.getOrElse('?'))
+    case KeyType.Character  => WriteEffect.TogglingWrite(input.character.getOrElse('?'))
     case KeyType.Enter      => WriteEffect.Return
     case KeyType.Tab        => WriteEffect.Tab
     case KeyType.Backspace  => DeleteEffect.DeleteLeft
@@ -28,11 +28,11 @@ object UserInput {
     case KeyType.End        => NavigateEffect.CursorToEnd
     case KeyType.PageUp     => NavigateEffect.CursorToTop
     case KeyType.PageDown   => NavigateEffect.CursorToBottom
+    case KeyType.Escape     => Escape
+    case KeyType.Insert     => StateChangeEffect.ToggleWriteMode
     case KeyType.Unknown    => Unexpected(input)
     case _                  => Unexpected(input)
     case KeyType.ReverseTab => ???
-    case KeyType.Insert     => ???
-    case KeyType.Escape     => ???
     case KeyType.F1         => ???
     case KeyType.F2         => ???
     case KeyType.F3         => ???

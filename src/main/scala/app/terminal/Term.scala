@@ -14,7 +14,7 @@ object Term {
     AWTTerminalFontConfiguration.newInstance(Font("Noto Mono", 0, 48))
 
   private val fontConfiguration1: SwingTerminalFontConfiguration  =
-    SwingTerminalFontConfiguration.newInstance(Font("Noto Mono", 0, 16))
+    SwingTerminalFontConfiguration.newInstance(Font("DejaVu Sans Mono", 0, 16))
 
   def createF[F[_]: Async]: F[Terminal] = Async[F].blocking {
     val term = DefaultTerminalFactory()
