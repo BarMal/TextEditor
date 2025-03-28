@@ -44,11 +44,9 @@ case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
       case Leaf(_)    => 1
     }(0)
 
-  override def indexOf(i: Int): Option[Char] = {
-    if weight > i then
-      left.flatMap(r => r.indexOf(i))
-    else right.flatMap(r => r.indexOf(i - weight))
-  }
+  override def indexOf(i: Int): Option[Char] =
+    if weight > i then left.flatMap(_.indexOf(i))
+    else right.flatMap(_.indexOf(i - weight))
 
   override def split(index: Int): (Rope, Rope) = ???
 
