@@ -5,7 +5,7 @@ import org.scalatest.matchers.should.Matchers
 
 class RopeSpec extends AnyFlatSpec with Matchers {
 
-  "Rope" should "collect values and weights correctly" in new RopeSpecScope {
+  "Rope" should "weight" in new RopeSpecScope {
     val c: Node = Node(Leaf("Hello "), Leaf("my "))
     c.weight shouldBe 6
     val g: Node = Node(Leaf("na"), Leaf("me i"))
@@ -24,11 +24,11 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     a.collect() shouldBe "Hello my name is Barney"
   }
 
-  it should "concat another Rope" in new RopeSpecScope {
+  it should "concat" in new RopeSpecScope {
     (Rope(" world!") :: Rope("Hello")).collect() shouldBe "Hello world!"
   }
 
-  it should "evaluate and correct balance" in new RopeSpecScope {
+  it should "balance" in new RopeSpecScope {
     val depth4: Node  = Node(Leaf("Deepest"))
     val depth3a: Node = Node(depth4, Node(Leaf("Up1")))
     val depth3b: Node = Node(Leaf("Up1a"), Leaf("Up1b"))
@@ -49,45 +49,41 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "index" in new RopeSpecScope {
-    val c: Node = Node(Leaf("Hello "), Leaf("my "))
-    val g: Node = Node(Leaf("na"), Leaf("me i"))
-    val h: Node = Node(Leaf("s"), Leaf(" Barney"))
-    val d: Node = Node(g, h)
-    val b: Node = Node(c, d)
-    val a: Node = Node(b)
+    val a: Rope = Rope("Hello, my name is Barney")
 
-    a.collect().zipWithIndex.map {
-      case (char, index) => a.indexOf(index) shouldBe Some(char)
+    a.collect().zipWithIndex.map { case (char, index) =>
+      a.index(index) shouldBe Some(char)
     }
 
-    a.indexOf(-1) shouldBe None
-    a.indexOf(0) shouldBe Some('H')
-    a.indexOf(10) shouldBe Some('a')
-    a.indexOf(12) shouldBe Some('e')
-    a.indexOf(22) shouldBe Some('y')
-    a.indexOf(23) shouldBe None
+    a.index(-1) shouldBe None
+    a.index(0) shouldBe Some('H')
+    a.index(10) shouldBe Some('a')
+    a.index(12) shouldBe Some('e')
+    a.index(22) shouldBe Some('y')
+    a.index(23) shouldBe None
   }
 
   it should "split" in new RopeSpecScope {
-    val c: Node = Node(Leaf("Hello "), Leaf("my "))
-    val g: Node = Node(Leaf("na"), Leaf("me i"))
-    val h: Node = Node(Leaf("s"), Leaf(" Barney"))
-    val d: Node = Node(g, h)
-    val b: Node = Node(c, d)
-    val a: Node = Node(b)
+    val a: Rope = Rope("Hello, my name is Barney")
 
-    val (left, right) = a.splitAt(12)
-    left.collect() shouldBe "Hello my nam"
-    right.collect() shouldBe "e is Barney"
+    val (left, right) = a.split(12)
+    left.map(_.collect()) shouldBe Some("Hello, my na")
+    right.map(_.collect()) shouldBe Some("me is Barney")
 
-    val (nothing, all) = a.splitAt(0)
-    nothing.collect() shouldBe ""
-    all.collect() shouldBe a.collect()
+    val (nothing, all) = a.split(0)
+    nothing.map(_.collect()) shouldBe None
+    all.map(_.collect()) shouldBe Some(a.collect())
+
+    val (all1, nothing1) = a.split(a.collect().length - 1)
+    nothing1.map(_.collect()) shouldBe Some("")
+    all1.map(_.collect()) shouldBe Some(a.collect())
   }
 
   it should "insert" in new RopeSpecScope {
-
+    Rope("Hello world!").insert(5, ',').collect() shouldBe "Hello, world!"
   }
+
+  it should "delete" in new RopeSpecScope {}
 
   trait RopeSpecScope {
     given balance: Balance = Balance(3, 1, 5)

@@ -12,21 +12,25 @@ trait Rope(using balance: Balance) {
 
   def rebalance: Rope
 
-  def indexOf(i: Int): Option[Char]
-  
-  def splitAt(index: Int): (Rope, Rope)
+  def index(i: Int): Option[Char]
+
+  def split(index: Int): (Option[Rope], Option[Rope])
 
   def insert(index: Int, char: Char): Rope = {
-    val (pre, post) = splitAt(index)
-    (post :: Leaf(char.toString) :: pre).rebalance
+    val (pre, post) = split(index)
+    val leaf: Leaf  = Leaf(char.toString)
+    (for {
+      a <- pre
+      b <- post
+    } yield (b :: leaf :: a).rebalance).getOrElse(leaf)
   }
 
   def delete(start: Int, end: Int): Rope = {
-    val (keepStart, _) = splitAt(start)
-    val (_, keepEnd) = splitAt(end)
+    val (keepStart, _) = split(start)
+    val (_, keepEnd)   = split(end)
     Node(keepStart, keepEnd).rebalance
   }
-  
+
   def collect(): String = {
     def _collect(curr: Rope, acc: List[String]): List[String] =
       curr match
