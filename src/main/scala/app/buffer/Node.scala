@@ -32,7 +32,7 @@ case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
           val (first, second) = l.split(index)
           (
             first.map(_.rebalance),
-            second.map(r => Node(second, right).rebalance)
+            second.map(* => Node(second, right).rebalance)
           )
         case None => (None, None)
     } else if weight < index then {
@@ -40,7 +40,7 @@ case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
         case Some(r) =>
           val (first, second) =
             r.split(left.mapOr(l => index - l.weight)(0))
-          (first.map(l => Node(left, first).rebalance), second.map(_.rebalance))
+          (first.map(* => Node(left, first).rebalance), second.map(_.rebalance))
         case None => (None, None)
     } else (left, right)
 

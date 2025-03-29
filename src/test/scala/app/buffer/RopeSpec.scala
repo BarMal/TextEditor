@@ -83,7 +83,9 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     Rope("Hello world!").insert(5, ',').collect() shouldBe "Hello, world!"
   }
 
-  it should "delete" in new RopeSpecScope {}
+  it should "delete" in new RopeSpecScope {
+    Rope("Hello, world!").delete(3, 5).collect() shouldBe "Hel world!" 
+  }
 
   trait RopeSpecScope {
     given balance: Balance = Balance(3, 1, 5)

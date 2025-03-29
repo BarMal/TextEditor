@@ -3,12 +3,8 @@ package app
 import app.UserInput.flatten
 import app.WriteMode.Write
 import app.action.Effect
-import app.action.editor.{
-  DeleteEffect,
-  NavigateEffect,
-  StateChangeEffect,
-  WriteEffect
-}
+import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
+import app.buffer.{Balance, Rope}
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(
@@ -68,7 +64,7 @@ object WriteMode {
 //val bar = foo.runEmpty
 
 case class BufferState(
-    buffer: String,
+    buffer: Rope,
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
@@ -95,8 +91,10 @@ case class BufferState(
 
 object BufferState {
 
+  given balance: Balance = Balance(32, 10, 32)
+  
   def empty =
-    new BufferState("", 0, List.empty[Effect], 50, None, Write)
+    new BufferState(Rope(""), 0, List.empty[Effect], 50, None, Write)
 
 //  given showInstance: Show[BufferState] = (t: BufferState) =>
 //    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))

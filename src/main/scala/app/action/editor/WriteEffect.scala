@@ -4,13 +4,10 @@ import app.{BufferState, WriteMode}
 
 sealed trait WriteEffect extends BufferEffect {
 
-  protected def write[T]: BufferState => T => BufferState = state =>
+  protected def write: BufferState => Char => BufferState = state =>
     in =>
       BufferState(
-        buffer = {
-          val (pre, post) = state.buffer.splitAt(state.cursorPosition)
-          (pre + in) + post
-        },
+        buffer = state.buffer.insert(state.cursorPosition, in),
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,
@@ -18,13 +15,10 @@ sealed trait WriteEffect extends BufferEffect {
         writeMode = state.writeMode
       )
 
-  protected def overwrite[T]: BufferState => T => BufferState = state =>
+  protected def overwrite: BufferState => Char => BufferState = state =>
     in =>
       BufferState(
-        buffer = {
-          val (pre, post) = state.buffer.splitAt(state.cursorPosition)
-          (pre + in) + post.drop(1)
-        },
+        buffer = state.buffer.replace(state.cursorPosition, in),
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,

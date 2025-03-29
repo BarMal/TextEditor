@@ -23,7 +23,7 @@ object Header {
 
   def apply(state: BufferState): Header = Header(
     cursorPosition = cursorPositionFromState(state),
-    bufferSize = state.buffer.length(),
+    bufferSize = state.buffer.weight,
     lastEffect = state.userEffects.headOption
   )
 

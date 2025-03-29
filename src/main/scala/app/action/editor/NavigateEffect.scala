@@ -31,32 +31,32 @@ object NavigateEffect {
   case object CursorRight extends NavigateEffect {
     override def moveCursor: BufferState => Int = state => state.cursorPosition + 1
     override def boundsCheck: BufferState => Boolean = state =>
-      moveCursor(state) <= state.buffer.length()
+      moveCursor(state) <= state.buffer.weight
   }
 
   case object CursorUp extends NavigateEffect {
     override def moveCursor: BufferState => Int = state =>
       state.cursorPosition - state.lineLength
     override def boundsCheck: BufferState => Boolean = state =>
-      moveCursor(state) > state.buffer.length()
+      moveCursor(state) > state.buffer.weight
   }
 
   case object CursorDown extends NavigateEffect {
     override def moveCursor: BufferState => Int = state =>
       state.cursorPosition + state.lineLength
     override def boundsCheck: BufferState => Boolean = state =>
-      moveCursor(state) < state.buffer.length()
+      moveCursor(state) < state.buffer.weight
   }
 
   case object CursorToEnd extends NavigateEffect {
     override def moveCursor: BufferState => Int =
       state =>
         Math.min(
-          state.buffer.length,
+          state.buffer.weight,
           state.lineLength * ((state.cursorPosition % state.lineLength) + 1)
         )
     override def boundsCheck: BufferState => Boolean = state =>
-      moveCursor(state) < state.buffer.length()
+      moveCursor(state) < state.buffer.weight
   }
 
   case object CursorToStart extends NavigateEffect {

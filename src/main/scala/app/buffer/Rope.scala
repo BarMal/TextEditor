@@ -31,6 +31,15 @@ trait Rope(using balance: Balance) {
     Node(keepStart, keepEnd).rebalance
   }
 
+  def drop(n: Int): Rope = delete(0, n)
+
+  def dropRight(n: Int): Rope = delete(n, weight - 1)
+  
+  def replace(index: Int, char: Char): Rope = {
+    val (r, l) = split(index)
+    Node(r.map(_.dropRight(1).::(Leaf(char.toString))), l)
+  }
+
   def collect(): String = {
     def _collect(curr: Rope, acc: List[String]): List[String] =
       curr match

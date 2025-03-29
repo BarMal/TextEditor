@@ -29,10 +29,8 @@ object Body {
   private def insertCursor(
       state: BufferState,
       cursorCharacter: Char = '\u2588'
-  ): String = {
-    val (pre, post) = state.buffer.splitAt(state.cursorPosition)
-    (pre + cursorCharacter) + post.drop(1)
-  }
+  ): String =
+    state.buffer.replace(state.cursorPosition, cursorCharacter).collect()
 
   def apply(
       state: BufferState,
@@ -43,7 +41,7 @@ object Body {
       lineBuilder(
         List.empty[String],
         if (isCursorVisible) insertCursor(state, cursorCharacter)
-        else state.buffer,
+        else state.buffer.collect(),
         state.lineLength
       )
     )
