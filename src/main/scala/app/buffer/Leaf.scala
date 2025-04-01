@@ -4,6 +4,7 @@ import scala.util.Try
 
 case class Leaf(value: String)(using balance: Balance) extends Rope:
   override def weight: Int               = value.length
+  override def height: Int               = 1
   override def isWeightBalanced: Boolean = true
   override def isHeightBalanced: Boolean = true
   override def rebalance: Rope =
@@ -13,9 +14,9 @@ case class Leaf(value: String)(using balance: Balance) extends Rope:
   override def index(i: Int): Option[Char] = Try(value.charAt(i)).toOption
   override def insert(index: Int, char: Char): Rope = {
     val (pre, post) = value.splitAt(index)
-    Rope((pre + char) + post).rebalance
+    Rope((pre + char) + post)
   }
   override def delete(start: Int, end: Int): Rope = Leaf(
     value.take(start) + value.drop(end)
   )
-  override def collect(): String                 = value
+  override def collect(): String = value

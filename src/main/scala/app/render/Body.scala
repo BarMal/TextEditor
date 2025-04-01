@@ -47,6 +47,6 @@ object Body {
     )
 
   given showInstance: Show[Body] =
-    (t: Body) => t.lines.mkString("\n\t")
+    (t: Body) => t.lines.map(s => s"""\n\t$s""").mkString
 
 }

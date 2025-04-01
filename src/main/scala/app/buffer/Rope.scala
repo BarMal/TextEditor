@@ -2,6 +2,7 @@ package app.buffer
 
 trait Rope(using balance: Balance) {
   def weight: Int
+  def height: Int
 
   def isWeightBalanced: Boolean
   def isHeightBalanced: Boolean
@@ -18,8 +19,9 @@ trait Rope(using balance: Balance) {
 
   def insert(index: Int, char: Char): Rope =
     split(index) match
-      case Some(pre, post) => (post :: Leaf(char.toString) :: pre).rebalance
-      case None            => this
+      case Some(pre, post) =>
+        (post :: (Leaf(char.toString) :: pre)).rebalance
+      case None => this
 
   def delete(start: Int, count: Int): Rope =
     List(start, start + count).sorted match
@@ -39,7 +41,7 @@ trait Rope(using balance: Balance) {
   def replace(index: Int, char: Char): Rope =
     split(index) match
       case Some((l, r)) =>
-        Node(l, r.drop(1)::Leaf(char.toString).rebalance)
+        Node(l, r.drop(1) :: Leaf(char.toString)).rebalance
       case None => this
 
   def collect(): String = {
@@ -59,7 +61,7 @@ object Rope {
     if in.length <= balance.leafChunkSize then Leaf(in)
     else {
       val (left, right) = in.splitAt(Math.floorDiv(in.length, 2))
-      Node(Rope(left), Rope(right))
+      Node(Rope(left), Rope(right)).rebalance
     }
 
 }

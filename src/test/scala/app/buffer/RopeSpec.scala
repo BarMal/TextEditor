@@ -7,16 +7,16 @@ class RopeSpec extends AnyFlatSpec with Matchers {
 
   "Rope" should "weight" in new RopeSpecScope {
     val c: Node = Node(Leaf("Hello "), Leaf("my "))
-    c.weight shouldBe 6
+    c.weight shouldBe 9
     val g: Node = Node(Leaf("na"), Leaf("me i"))
-    g.weight shouldBe 2
+    g.weight shouldBe 6
     val h: Node = Node(Leaf("s"), Leaf(" Barney"))
-    h.weight shouldBe 1
+    h.weight shouldBe 8
 
     val d: Node = Node(g, h)
-    d.weight shouldBe 6
+    d.weight shouldBe 14
     val b: Node = Node(c, d)
-    b.weight shouldBe 9
+    b.weight shouldBe 23
 
     val a: Node = Node(b, Leaf(""))
     a.weight shouldBe 23
@@ -74,9 +74,9 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     nothing.collect() shouldBe ""
     all.collect() shouldBe a.collect()
 
-    val Some(all1, nothing1) = a.split(a.collect().length) : @unchecked
-    nothing1.collect() shouldBe ""
+    val Some(all1, nothing1) = a.split(a.weight) : @unchecked
     all1.collect() shouldBe a.collect()
+    nothing1.collect() shouldBe ""
   }
 
   it should "insert" in new RopeSpecScope {
@@ -91,6 +91,10 @@ class RopeSpec extends AnyFlatSpec with Matchers {
 
   it should "replace" in new RopeSpecScope {
     Rope("Hello, world!").replace(5, '!').replace(7, 'W').collect() shouldBe "Hello! World!"
+  }
+
+  it should "handle large strings" in new RopeSpecScope {
+    Rope(Range.inclusive(0, 50000000).map(_ => 'a').mkString).rebalance.rebuild
   }
 
   trait RopeSpecScope {
