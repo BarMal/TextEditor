@@ -18,7 +18,7 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     val b: Node = Node(c, d)
     b.weight shouldBe 9
 
-    val a: Node = Node(b)
+    val a: Node = Node(b, Leaf(""))
     a.weight shouldBe 23
 
     a.collect() shouldBe "Hello my name is Barney"
@@ -29,11 +29,11 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "balance" in new RopeSpecScope {
-    val depth4: Node  = Node(Leaf("Deepest"))
-    val depth3a: Node = Node(depth4, Node(Leaf("Up1")))
+    val depth4: Node  = Node(Leaf("Deepest"), Leaf(""))
+    val depth3a: Node = Node(depth4, Node(Leaf("Up1"), Leaf("")))
     val depth3b: Node = Node(Leaf("Up1a"), Leaf("Up1b"))
     val depth2a: Node = Node(depth3a, depth3b)
-    val depth2b: Node = Node(Leaf("Up2"))
+    val depth2b: Node = Node(Leaf("Up2"), Leaf(""))
     val root: Node    = Node(depth2a, depth2b)
 
     root.isHeightBalanced shouldBe false
@@ -57,26 +57,26 @@ class RopeSpec extends AnyFlatSpec with Matchers {
 
     a.index(-1) shouldBe None
     a.index(0) shouldBe Some('H')
-    a.index(10) shouldBe Some('a')
-    a.index(12) shouldBe Some('e')
-    a.index(22) shouldBe Some('y')
-    a.index(23) shouldBe None
+    a.index(10) shouldBe Some('n')
+    a.index(12) shouldBe Some('m')
+    a.index(23) shouldBe Some('y')
+    a.index(24) shouldBe None
   }
 
   it should "split" in new RopeSpecScope {
     val a: Rope = Rope("Hello, my name is Barney")
 
-    val (left, right) = a.split(12)
-    left.map(_.collect()) shouldBe Some("Hello, my na")
-    right.map(_.collect()) shouldBe Some("me is Barney")
+    val Some(left, right) = a.split(12) : @unchecked
+    left.collect() shouldBe "Hello, my na"
+    right.collect() shouldBe "me is Barney"
 
-    val (nothing, all) = a.split(0)
-    nothing.map(_.collect()) shouldBe None
-    all.map(_.collect()) shouldBe Some(a.collect())
+    val Some(nothing, all) = a.split(0): @unchecked
+    nothing.collect() shouldBe ""
+    all.collect() shouldBe a.collect()
 
-    val (all1, nothing1) = a.split(a.collect().length - 1)
-    nothing1.map(_.collect()) shouldBe Some("")
-    all1.map(_.collect()) shouldBe Some(a.collect())
+    val Some(all1, nothing1) = a.split(a.collect().length) : @unchecked
+    nothing1.collect() shouldBe ""
+    all1.collect() shouldBe a.collect()
   }
 
   it should "insert" in new RopeSpecScope {
@@ -84,7 +84,13 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "delete" in new RopeSpecScope {
-    Rope("Hello, world!").delete(3, 5).collect() shouldBe "Hel world!" 
+    Rope("Hello, world!").delete(3, 2).collect() shouldBe "Hel, world!"
+    Rope("Hello, world!").delete(13, 1).collect() shouldBe "Hello, world!"
+    Rope("Hello, world!").delete(13, -14).collect() shouldBe ""
+  }
+
+  it should "replace" in new RopeSpecScope {
+    Rope("Hello, world!").replace(5, '!').replace(7, 'W').collect() shouldBe "Hello! World!"
   }
 
   trait RopeSpecScope {

@@ -1,77 +1,47 @@
 package app.buffer
 
-case class Node(left: Option[Rope], right: Option[Rope])(using balance: Balance)
-    extends Rope:
+case class Node(left: Rope, right: Rope)(using balance: Balance) extends Rope:
 
-  override def weight: Int = {
-    def subtreeWeight(rope: Option[Rope]): Int = rope match
-      case Some(Node(l, r))  => subtreeWeight(l) + subtreeWeight(r)
-      case Some(Leaf(value)) => value.length
-      case _                 => 0
+  override def weight: Int = subtreeWeight(left)
 
-    subtreeWeight(left)
-  }
+  override def isWeightBalanced: Boolean =
+    Math.abs(left.weight - right.weight) <= balance.weightBalance
 
   override def isHeightBalanced: Boolean =
     Math.abs(height(left) - height(right)) <= balance.heightBalance
 
-  override def isWeightBalanced: Boolean = Math.abs(
-    left.mapOr(_.weight)(0) - right.mapOr(_.weight)(0)
-  ) <= balance.weightBalance
+  override def rebalance: Rope = if isWeightBalanced then this
+  else if left.weight < right.weight then rotateLeft()
+  else rotateRight()
 
-  override def rebalance: Rope =
-    if isWeightBalanced then this
-    else if left.mapOr(_.weight)(0) < right.mapOr(_.weight)(0) then rotateLeft()
-    else rotateRight()
-
-  override def split(index: Int): (Option[Rope], Option[Rope]) =
-    if index == 0 then (None, Some(this))
+  override def split(index: Int): Option[(Rope, Rope)] =
+    if index == 0 then Some(Leaf(""), this)
     else if weight > index then {
-      left match
-        case Some(l) =>
-          val (first, second) = l.split(index)
-          (
-            first.map(_.rebalance),
-            second.map(* => Node(second, right).rebalance)
-          )
-        case None => (None, None)
+      left.split(index).map { case (first, second) =>
+        (first.rebalance, Node(second, right).rebalance)
+      }
     } else if weight < index then {
-      right match
-        case Some(r) =>
-          val (first, second) =
-            r.split(left.mapOr(l => index - l.weight)(0))
-          (first.map(* => Node(left, first).rebalance), second.map(_.rebalance))
-        case None => (None, None)
-    } else (left, right)
+      right.split(index - weight).map { case (first, second) =>
+        (Node(left, first).rebalance, second.rebalance)
+      }
+    } else Some(left, right)
 
-  override def index(index: Int): Option[Char] =
-    if weight > index then left.flatMap(_.index(index))
-    else right.flatMap(_.index(index - weight))
+  override def index(i: Int): Option[Char] =
+    if weight > i then left.index(i) else right.index(i - weight)
 
-  private def rotateLeft(): Node = right
-    .map {
-      case Node(l, r) => Node(Some(Node(left, l)), r)
-      case Leaf(_)    => this
-    }
-    .getOrElse(this)
+  private def rotateLeft(): Node = right match
+    case Node(l, r)  => Node(Node(left, l), r)
+    case Leaf(value) => this
 
-  private def rotateRight(): Node = left
-    .map {
-      case Node(l, r) => Node(l, Some(Node(r, right)))
-      case Leaf(_)    => this
-    }
-    .getOrElse(this)
+  private def rotateRight(): Node = left match
+    case Node(l, r)  => Node(l, Node(r, right))
+    case Leaf(value) => this
 
-  private def height(node: Option[Rope]): Int =
-    node.mapOr {
-      case Node(l, r) => Math.max(height(l), height(r)) + 1
-      case Leaf(_)    => 1
-    }(0)
+  private def height(node: Rope): Int =
+    node match
+      case Node(l, r)  => Math.max(height(l), height(r)) + 1
+      case Leaf(value) => 1
 
-object Node {
-  def apply(left: Rope)(using balance: Balance): Node =
-    Node(Some(left), None)
-
-  def apply(left: Rope, right: Rope)(using balance: Balance): Node =
-    Node(Some(left), Some(right))
-}
+  private def subtreeWeight(rope: Rope): Int = rope match
+    case Node(l, r)  => subtreeWeight(l) + subtreeWeight(r)
+    case Leaf(value) => value.length

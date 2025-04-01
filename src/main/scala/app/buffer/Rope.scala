@@ -6,7 +6,7 @@ trait Rope(using balance: Balance) {
   def isWeightBalanced: Boolean
   def isHeightBalanced: Boolean
 
-  def ::(that: Rope): Rope = Node(Some(this), Some(that)).rebalance
+  def ::(that: Rope): Rope = Node(this, that).rebalance
 
   def rebuild: Rope = Rope(this.collect())
 
@@ -14,41 +14,40 @@ trait Rope(using balance: Balance) {
 
   def index(i: Int): Option[Char]
 
-  def split(index: Int): (Option[Rope], Option[Rope])
+  def split(index: Int): Option[(Rope, Rope)]
 
-  def insert(index: Int, char: Char): Rope = {
-    val (pre, post) = split(index)
-    val leaf: Leaf  = Leaf(char.toString)
-    (for {
-      a <- pre
-      b <- post
-    } yield (b :: leaf :: a).rebalance).getOrElse(leaf)
-  }
+  def insert(index: Int, char: Char): Rope =
+    split(index) match
+      case Some(pre, post) => (post :: Leaf(char.toString) :: pre).rebalance
+      case None            => this
 
-  def delete(start: Int, end: Int): Rope = {
-    val (keepStart, _) = split(start)
-    val (_, keepEnd)   = split(end)
-    Node(keepStart, keepEnd).rebalance
-  }
+  def delete(start: Int, count: Int): Rope =
+    List(start, start + count).sorted match
+      case _start :: _end :: _ =>
+        (for {
+          startSplit <- split(_start)
+          endSplit   <- split(_end)
+        } yield {
+          val (keepStart, _) = startSplit
+          val (_, keepEnd)   = endSplit
+          Node(keepStart, keepEnd).rebalance
+        }).getOrElse(this)
+      case _ => this
 
   def drop(n: Int): Rope = delete(0, n)
 
-  def dropRight(n: Int): Rope = delete(n, weight - 1)
-  
-  def replace(index: Int, char: Char): Rope = {
-    val (r, l) = split(index)
-    Node(r.map(_.dropRight(1).::(Leaf(char.toString))), l)
-  }
+  def replace(index: Int, char: Char): Rope =
+    split(index) match
+      case Some((l, r)) =>
+        Node(l, r.drop(1)::Leaf(char.toString).rebalance)
+      case None => this
 
   def collect(): String = {
     def _collect(curr: Rope, acc: List[String]): List[String] =
       curr match
-        case Node(Some(left), Some(right)) =>
+        case Node(left, right) =>
           _collect(left, acc) ::: _collect(right, acc)
-        case Node(None, Some(right)) => _collect(right, acc)
-        case Node(Some(left), None)  => _collect(left, acc)
-        case Node(None, None)        => "" :: acc
-        case Leaf(value)             => value :: acc
+        case Leaf(value) => value :: acc
 
     _collect(this, List.empty[String]).mkString
   }
@@ -60,9 +59,7 @@ object Rope {
     if in.length <= balance.leafChunkSize then Leaf(in)
     else {
       val (left, right) = in.splitAt(Math.floorDiv(in.length, 2))
-      Node(Some(Rope(left)), Some(Rope(right)))
+      Node(Rope(left), Rope(right))
     }
-
-  def empty(using balance: Balance): Rope = Node(None, None)
 
 }

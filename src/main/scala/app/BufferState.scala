@@ -3,7 +3,12 @@ package app
 import app.UserInput.flatten
 import app.WriteMode.Write
 import app.action.Effect
-import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
+import app.action.editor.{
+  DeleteEffect,
+  NavigateEffect,
+  StateChangeEffect,
+  WriteEffect
+}
 import app.buffer.{Balance, Rope}
 import com.googlecode.lanterna.input.KeyStroke
 
@@ -92,7 +97,7 @@ case class BufferState(
 object BufferState {
 
   given balance: Balance = Balance(32, 10, 32)
-  
+
   def empty =
     new BufferState(Rope(""), 0, List.empty[Effect], 50, None, Write)
 
