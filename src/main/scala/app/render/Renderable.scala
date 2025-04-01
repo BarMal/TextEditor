@@ -26,8 +26,7 @@ object Renderable {
 
   given showInstance: Show[Renderable] = {
     case header: Header => Header.showInstance.show(header)
-    case body: Body     => Body.showInstance.show(body)
-    case spacer: Spacer => "\n"
+    case _: Spacer      => "\n"
   }
 
 }

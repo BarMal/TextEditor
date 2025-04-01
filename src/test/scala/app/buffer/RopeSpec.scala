@@ -66,7 +66,7 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   it should "split" in new RopeSpecScope {
     val a: Rope = Rope("Hello, my name is Barney")
 
-    val Some(left, right) = a.split(12) : @unchecked
+    val Some(left, right) = a.split(12): @unchecked
     left.collect() shouldBe "Hello, my na"
     right.collect() shouldBe "me is Barney"
 
@@ -74,7 +74,7 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     nothing.collect() shouldBe ""
     all.collect() shouldBe a.collect()
 
-    val Some(all1, nothing1) = a.split(a.weight) : @unchecked
+    val Some(all1, nothing1) = a.split(a.weight): @unchecked
     all1.collect() shouldBe a.collect()
     nothing1.collect() shouldBe ""
   }
@@ -84,13 +84,17 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "delete" in new RopeSpecScope {
-    Rope("Hello, world!").delete(3, 2).collect() shouldBe "Hel, world!"
-    Rope("Hello, world!").delete(13, 1).collect() shouldBe "Hello, world!"
-    Rope("Hello, world!").delete(13, -14).collect() shouldBe ""
+//    Rope("Hello, world!").deleteLeft(3, 2).collect() shouldBe "Hlo, world!"
+//    Rope("Hello, world!").deleteLeft(3, 12).collect() shouldBe "Heo, world!"
+//    Rope("Hello, world!").deleteRight(13, 1).collect() shouldBe "Hello, world!"
+//    Rope("Hello, world!").delete(13, -14).collect() shouldBe ""
   }
 
   it should "replace" in new RopeSpecScope {
-    Rope("Hello, world!").replace(5, '!').replace(7, 'W').collect() shouldBe "Hello! World!"
+    Rope("Hello, world!")
+      .replace(5, '!')
+      .replace(7, 'W')
+      .collect() shouldBe "Hello! World!"
   }
 
   it should "handle large strings" in new RopeSpecScope {

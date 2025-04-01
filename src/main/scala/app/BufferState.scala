@@ -68,12 +68,18 @@ object WriteMode {
 //
 //val bar = foo.runEmpty
 
+case class Selected(start: Int, end: Int) {
+  def length: Int = Math.abs(start - end)
+
+  override def toString: String = s"""$start - $end"""
+}
+
 case class BufferState(
     buffer: Rope,
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
-    selected: Option[Range],
+    selected: Option[Selected],
     writeMode: WriteMode
 ) extends Focusable[BufferState] {
 

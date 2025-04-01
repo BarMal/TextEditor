@@ -23,10 +23,11 @@ object Renderer {
   ): F[Unit] =
     writer
       .print(
-        Header(state).asElement,
-        Spacer(backgroundColour = TextColor.ANSI.RED).asElement,
-        Spacer(backgroundColour = TextColor.ANSI.RED).asElement,
-        Body(state, cursorVisible(startTime)).asElement
+        List(
+          Header(state).asElement,
+          Spacer(backgroundColour = TextColor.ANSI.RED).asElement,
+          Spacer(backgroundColour = TextColor.ANSI.RED).asElement
+        ) ++ Body.foo(state, cursorVisible(startTime))
       )
 
 }

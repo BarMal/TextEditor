@@ -56,7 +56,7 @@ class Writer[F[_]: Async](terminal: Terminal) {
             _print(showable) *>
             defaultTerminalColours
 
-  def print(elements: Element*): F[Unit] =
+  def print(elements: List[Element]): F[Unit] =
     clear *> elements.traverse(elem =>
       _printWithColours[String](elem.repr)(elem.foregroundColour)(
         elem.backgroundColour

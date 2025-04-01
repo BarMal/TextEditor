@@ -21,11 +21,11 @@ case class Node(left: Rope, right: Rope)(using balance: Balance) extends Rope:
     else if left.weight == index then Some(left, right)
     else if index < left.weight then
       left.split(index).map { case (first, second) =>
-        (first, Node(second, right))
+        (first.rebalance, Node(second, right).rebalance)
       }
     else
       right.split(index - left.weight).map { case (first, second) =>
-        (Node(left, first), second)
+        (Node(left, first).rebalance, second.rebalance)
       }
 
   override def index(i: Int): Option[Char] =

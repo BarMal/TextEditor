@@ -23,20 +23,27 @@ trait Rope(using balance: Balance) {
         (post :: (Leaf(char.toString) :: pre)).rebalance
       case None => this
 
-  def delete(start: Int, count: Int): Rope =
-    List(start, start + count).sorted match
-      case _start :: _end :: _ =>
-        (for {
-          startSplit <- split(_start)
-          endSplit   <- split(_end)
-        } yield {
-          val (keepStart, _) = startSplit
-          val (_, keepEnd)   = endSplit
-          Node(keepStart, keepEnd).rebalance
-        }).getOrElse(this)
-      case _ => this
+  def deleteLeft(start: Int, count: Int): Rope = if count < 0 then this
+  else
+    (for {
+      startAndRest <- split(Math.max(0, start - count))
+      (start, rest) = startAndRest
+      restAndEnd <- rest.split(count)
+      (deleted, end) = restAndEnd
+    } yield Node(start, end)).getOrElse(this)
 
-  def drop(n: Int): Rope = delete(0, n)
+  def deleteRight(start: Int, count: Int): Rope = if count < 0 then this
+  else
+    (for {
+      startAndRest <- split(Math.max(0, start))
+      (start, rest) = startAndRest
+      restAndEnd <- rest.split(count)
+      (deleted, end) = restAndEnd
+    } yield Node(start, end)).getOrElse(this)
+
+  def drop(n: Int): Rope = deleteRight(0, n)
+
+  def dropRight(n: Int): Rope = deleteLeft(weight, n)
 
   def replace(index: Int, char: Char): Rope =
     split(index) match
