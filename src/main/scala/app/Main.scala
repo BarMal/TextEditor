@@ -32,7 +32,7 @@ object Main extends IOApp {
       state =>
         fs2.Stream
           .constant(System.currentTimeMillis())
-          .metered[IO](16 milliseconds)
+          .metered[IO](6 milliseconds)
           .evalTap(startTime =>
             state.get.flatMap(Renderer.render(writer, startTime, _))
           )
