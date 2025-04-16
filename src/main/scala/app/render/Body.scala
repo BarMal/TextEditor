@@ -66,9 +66,9 @@ object Body {
         val startIndex = Math.min(selectedRange.start, selectedRange.end)
         val endIndex = Math.max(selectedRange.start, selectedRange.end)
         (for {
-          startSplit <- rope.buffer.split(startIndex)
+          startSplit <- rope.buffer.splitAt(startIndex)
           (start, rest) = startSplit
-          endSplit <- rest.split(endIndex)
+          endSplit <- rest.splitAt(endIndex)
           (highlighted, end) = endSplit
         } yield List(
           Element(start.collect(), ANSI.WHITE, ANSI.BLACK),

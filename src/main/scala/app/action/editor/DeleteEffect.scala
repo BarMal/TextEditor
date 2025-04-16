@@ -1,6 +1,6 @@
 package app.action.editor
 
-import app.BufferState
+import app.{BufferState, Modifier}
 
 sealed trait DeleteEffect extends BufferEffect {
 
@@ -46,11 +46,21 @@ sealed trait DeleteEffect extends BufferEffect {
       writeMode = state.writeMode
     )
 
+  protected def deleteWordLeft(state: BufferState): BufferState =
+    BufferState(
+      buffer = state.buffer.deleteLeft(state.cursorPosition, 1),
+      cursorPosition = Math.min(state.cursorPosition, state.buffer.weight),
+      userEffects = this :: state.userEffects,
+      lineLength = state.lineLength,
+      selected = None,
+      writeMode = state.writeMode
+    )
+  
 }
 
 object DeleteEffect {
 
-  case object DeleteLeft extends DeleteEffect {
+  case class DeleteLeft(modifiers: List[Modifier]) extends DeleteEffect {
 
     override def effect: BufferState => BufferState = state =>
       state.selected match
@@ -60,7 +70,7 @@ object DeleteEffect {
         case None => deleteLeft(state)
   }
 
-  case object DeleteRight extends DeleteEffect {
+  case class DeleteRight(modifiers: List[Modifier]) extends DeleteEffect {
     override def effect: BufferState => BufferState = state =>
       state.selected match
         case Some(selected) if selected.start < selected.end =>

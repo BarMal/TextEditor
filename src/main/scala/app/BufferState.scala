@@ -43,31 +43,6 @@ object WriteMode {
     case Overwrite => Write
 }
 
-//given stateMonoid: Monoid[BufferState] = new Monoid[BufferState] {
-//  override def empty: BufferState = BufferState.empty
-//
-//  override def combine(x: BufferState, y: BufferState): BufferState =
-//    BufferState(
-//      buffer = x.buffer.append(y.buffer),
-//      cursorPosition = x.buffer.length() + y.buffer.length(),
-//      userEffects = x.userEffects ++ y.userEffects,
-//      lineLength = Math.max(x.lineLength, y.lineLength),
-//      selected = None
-//    )
-//}
-//
-//given keyStrokeMonoid: Monoid[KeyStroke] = new Monoid[KeyStroke] {
-//
-//  override def empty: KeyStroke = KeyStroke
-//
-//  override def combine(x: KeyStroke, y: KeyStroke): KeyStroke = ???
-//}
-//
-//val foo: State[KeyStroke, BufferState] =
-//  State.empty[KeyStroke, BufferState]
-//
-//val bar = foo.runEmpty
-
 case class Selected(start: Int, end: Int) {
   def length: Int = Math.abs(start - end)
 
@@ -106,8 +81,5 @@ object BufferState {
 
   def empty =
     new BufferState(Rope(""), 0, List.empty[Effect], 50, None, Write)
-
-//  given showInstance: Show[BufferState] = (t: BufferState) =>
-//    Show[Header].show(Header(t)) ++ "\n\n" ++ Show[Body].show(Body(t))
 
 }

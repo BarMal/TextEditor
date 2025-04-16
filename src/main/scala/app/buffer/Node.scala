@@ -15,16 +15,16 @@ case class Node(left: Rope, right: Rope)(using balance: Balance) extends Rope:
   else if left.weight < right.weight then rotateLeft()
   else rotateRight()
 
-  override def split(index: Int): Option[(Rope, Rope)] =
+  override def splitAt(index: Int): Option[(Rope, Rope)] =
     if index == 0 then Some(Leaf(""), this)
     else if weight == index then Some(this, Leaf(""))
     else if left.weight == index then Some(left, right)
     else if index < left.weight then
-      left.split(index).map { case (first, second) =>
+      left.splitAt(index).map { case (first, second) =>
         (first.rebalance, Node(second, right).rebalance)
       }
     else
-      right.split(index - left.weight).map { case (first, second) =>
+      right.splitAt(index - left.weight).map { case (first, second) =>
         (Node(left, first).rebalance, second.rebalance)
       }
 

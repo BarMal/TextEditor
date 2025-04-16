@@ -18,12 +18,12 @@ object UserInput {
     case KeyType.Character  => WriteEffect.TogglingWrite(input.character.getOrElse('?'))
     case KeyType.Enter      => WriteEffect.Return
     case KeyType.Tab        => WriteEffect.Tab
-    case KeyType.Backspace  => DeleteEffect.DeleteLeft
+    case KeyType.Backspace  => DeleteEffect.DeleteLeft(input.modifiers)
     case KeyType.ArrowLeft  => NavigateEffect.CursorLeft(input.modifiers)
     case KeyType.ArrowRight => NavigateEffect.CursorRight(input.modifiers)
     case KeyType.ArrowUp    => NavigateEffect.CursorUp(input.modifiers)
     case KeyType.ArrowDown  => NavigateEffect.CursorDown(input.modifiers)
-    case KeyType.Delete     => DeleteEffect.DeleteRight
+    case KeyType.Delete     => DeleteEffect.DeleteRight(input.modifiers)
     case KeyType.Home       => NavigateEffect.CursorToStart(input.modifiers)
     case KeyType.End        => NavigateEffect.CursorToEnd(input.modifiers)
     case KeyType.PageUp     => NavigateEffect.CursorToTop(input.modifiers)

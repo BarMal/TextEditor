@@ -56,27 +56,20 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     }
 
     a.index(-1) shouldBe None
-    a.index(0) shouldBe Some('H')
-    a.index(10) shouldBe Some('n')
-    a.index(12) shouldBe Some('m')
-    a.index(23) shouldBe Some('y')
-    a.index(24) shouldBe None
+    a.index(a.weight + 1) shouldBe None
   }
 
   it should "split" in new RopeSpecScope {
     val a: Rope = Rope("Hello, my name is Barney")
 
-    val Some(left, right) = a.split(12): @unchecked
-    left.collect() shouldBe "Hello, my na"
-    right.collect() shouldBe "me is Barney"
+    List(0, 12, a.weight + 1).foreach { scenarioIndex =>
+      a.splitAt(scenarioIndex).map { (l, r) =>
+        val (el, er) = a.collect().splitAt(scenarioIndex)
+        l.collect() shouldBe el
+        r.collect() shouldBe er
+      }
+    }
 
-    val Some(nothing, all) = a.split(0): @unchecked
-    nothing.collect() shouldBe ""
-    all.collect() shouldBe a.collect()
-
-    val Some(all1, nothing1) = a.split(a.weight): @unchecked
-    all1.collect() shouldBe a.collect()
-    nothing1.collect() shouldBe ""
   }
 
   it should "insert" in new RopeSpecScope {
@@ -84,10 +77,11 @@ class RopeSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "delete" in new RopeSpecScope {
-//    Rope("Hello, world!").deleteLeft(3, 2).collect() shouldBe "Hlo, world!"
-//    Rope("Hello, world!").deleteLeft(3, 12).collect() shouldBe "Heo, world!"
-//    Rope("Hello, world!").deleteRight(13, 1).collect() shouldBe "Hello, world!"
-//    Rope("Hello, world!").delete(13, -14).collect() shouldBe ""
+    Rope("Hello, world!").deleteLeft(3, 2).collect() shouldBe "Ho, world!"
+    Rope("Hello, world!").deleteLeft(3, 12).collect() shouldBe "lo, world!"
+    Rope("Hello, world!").deleteRight(13, 1).collect() shouldBe "Hello, world!"
+    Rope("Hello, world!").deleteRight(13, -13).collect() shouldBe ""
+    Rope("Hello, world!").deleteLeft(0, -13).collect() shouldBe ""
   }
 
   it should "replace" in new RopeSpecScope {
@@ -97,12 +91,45 @@ class RopeSpec extends AnyFlatSpec with Matchers {
       .collect() shouldBe "Hello! World!"
   }
 
+  it should "search" in new ChunkedRopeSpecScope {
+    val lorem0: String =
+      s"""Lorem ipsum dolor sit amet, consectetur adipiscing
+         |elit, sed do eiusmod tempor incididunt ut labore et
+         |dolore magna aliqua. Ut enim ad minim veniam, quis
+         |nostrud exercitation ullamco laboris nisi ut aliquip
+         |ex ea commodo consequat. Duis aute irure dolor in
+         |reprehenderit in voluptate velit esse cillum dolore
+         |eu fugiat nulla pariatur. Excepteur sint occaecat
+         |cupidatat non proident, sunt in culpa qui officia
+         |deserunt mollit anim id est laborum.""".stripMargin
+
+    val rope: Rope = Rope(lorem0)
+
+    val search0: String = "Lorem"
+    rope.search(search0) shouldBe Some(0)
+
+    val search1: String = "laborum"
+    rope.search(search1) shouldBe Some(lorem0.indexOf(search1))
+
+    val search2: String = "in culpa qui officia"
+    rope.search(search2) shouldBe Some(lorem0.indexOf(search2))
+
+    val search3: String = "Doesn't exist in the body"
+    rope.search(search3) shouldBe None
+  }
+
   it should "handle large strings" in new RopeSpecScope {
     Rope(Range.inclusive(0, 50000000).map(_ => 'a').mkString).rebalance.rebuild
   }
 
   trait RopeSpecScope {
-    given balance: Balance = Balance(3, 1, 5)
+    given balance: Balance =
+      Balance(weightBalance = 3, heightBalance = 1, leafChunkSize = 5)
+  }
+
+  trait ChunkedRopeSpecScope {
+    given balance: Balance =
+      Balance(weightBalance = 3, heightBalance = 1, leafChunkSize = 30)
   }
 
 }

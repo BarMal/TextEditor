@@ -9,7 +9,7 @@ case class Leaf(value: String)(using balance: Balance) extends Rope:
   override def isHeightBalanced: Boolean = true
   override def rebalance: Rope =
     if (value.length > balance.leafChunkSize) Rope(value) else this
-  override def split(index: Int): Option[(Rope, Rope)] =
+  override def splitAt(index: Int): Option[(Rope, Rope)] =
     Some(Leaf(value.take(index)), Leaf(value.drop(index)))
   override def index(i: Int): Option[Char] = Try(value.charAt(i)).toOption
   override def insert(index: Int, char: Char): Rope = {
