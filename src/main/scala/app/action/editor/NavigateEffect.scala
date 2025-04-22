@@ -1,6 +1,7 @@
 package app.action.editor
 
-import app.{BufferState, Modifier, Selected}
+import app.buffer.{BufferState, Selected}
+import app.Modifier
 
 sealed trait NavigateEffect(modifiers: List[Modifier]) extends BufferEffect {
 

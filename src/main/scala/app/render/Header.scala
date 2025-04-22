@@ -1,7 +1,7 @@
 package app.render
 
-import app.{BufferState, Selected}
 import app.action.Effect
+import app.buffer.{BufferState, Selected}
 import cats.Show
 import com.googlecode.lanterna.TextColor.ANSI
 

@@ -1,6 +1,6 @@
 package app.render
 
-import app.BufferState
+import app.buffer.BufferState
 import cats.Show
 import com.googlecode.lanterna.TextColor.ANSI
 

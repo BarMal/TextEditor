@@ -1,5 +1,9 @@
 A simple text editor written in Scala 3 using fs2 and lanterna
 
+In-progress:
+- Use higher lanterna abstraction for better graphical performance
+- Add basic formatting (SGR)
+
 TODO: 
 
 - Finish rest of input keys mappings
@@ -11,6 +15,5 @@ TODO:
 - Undo/redo
 - Fixed view to keep current cursor in the center
 - Word wrapping in view
-- Consider using higher lanterna abstraction for better graphical performance/aesthetics
 - Consider tree-sitter for syntax highlighting 
 - Line numbering

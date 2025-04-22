@@ -1,4 +1,4 @@
-package app.buffer
+package app.buffer.rope
 
 sealed trait SearchState
 

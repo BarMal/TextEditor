@@ -1,4 +1,4 @@
-package app.buffer
+package app.buffer.rope
 
 import scala.util.Try
 

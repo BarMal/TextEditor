@@ -1,7 +1,6 @@
-package app.buffer
+package app.buffer.rope
 
 import scala.annotation.tailrec
-import scala.collection.immutable.Queue
 
 trait Rope(using balance: Balance) {
   def weight: Int

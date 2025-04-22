@@ -1,17 +1,22 @@
 package app
 
+import app.buffer.BufferState
 import app.config.AppConfig
 import app.config.AppConfig.yamlDecoder
 import app.render.Renderer
+import app.screen.{ScreenReader, ScreenWriter}
 import app.terminal.{Reader, Term, Writer}
 import cats.effect.*
-import com.googlecode.lanterna.terminal.Terminal
+import com.googlecode.lanterna.{TerminalSize, TextCharacter}
+import com.googlecode.lanterna.screen.{Screen, TerminalScreen}
+import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.virtuslab.yaml.*
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import scala.util.{Failure, Success, Try}
 
 object Main extends IOApp {
 
@@ -21,50 +26,83 @@ object Main extends IOApp {
   private val config: Either[YamlError, AppConfig] =
     scala.io.Source.fromResource("config.yml").mkString.as[AppConfig]
 
-  private def terminalRes: Resource[IO, Terminal] =
-    Resource.make(Term.createF[IO])(Term.closeTerminalF[IO])
+  private def screenRes: Resource[IO, Screen] =
+    Resource.make {
+      Try {
+        val term: Terminal = DefaultTerminalFactory()
+          .setTerminalEmulatorTitle("Bam")
+          .setInitialTerminalSize(new TerminalSize(75, 50))
+          .createTerminal()
+
+        term.setCursorVisible(false)
+
+        new TerminalScreen(term)
+      } match {
+        case Failure(exception) =>
+          logger.error(exception)("Failed to start screen resource") *>
+            IO.raiseError(exception)
+        case Success(screen) => logger.info("Created screen").as(screen)
+      }
+    } { screen =>
+      Try(screen.stopScreen()) match {
+        case Failure(exception) =>
+          logger.error(exception)("Failed to release screen resource") *>
+            IO.raiseError(exception)
+        case Success(_) => logger.info("Stopped screen").void
+      }
+    }
 
   private val bufferStateRef: IO[Ref[IO, BufferState]] =
     Ref.of[IO, BufferState](BufferState.empty)
 
-  private def out: Writer[IO] => Ref[IO, BufferState] => fs2.Stream[IO, Unit] =
-    writer =>
-      state =>
-        fs2.Stream
-          .constant(System.currentTimeMillis())
-          .metered[IO](6 milliseconds)
-          .evalTap(startTime =>
-            state.get.flatMap(Renderer.render(writer, startTime, _))
-          )
-          .void
+  private def in(
+      reader: ScreenReader[IO],
+      stateRef: Ref[IO, BufferState]
+  ): fs2.Stream[IO, Unit] =
+    reader.readStream
+      .evalTap(keyStroke => stateRef.update(_ ++ keyStroke))
+      .void
 
-  private def in: Reader[IO] => Ref[IO, BufferState] => fs2.Stream[IO, Unit] =
-    reader =>
-      state =>
-        reader.readStream
-          .evalTap(keyStroke => state.update(_ ++ keyStroke))
-          .void
+  private def out(
+      writer: ScreenWriter[IO],
+      stateRef: Ref[IO, BufferState]
+  ): fs2.Stream[IO, Unit] =
+    fs2.Stream
+      .constant(System.currentTimeMillis())
+      .metered[IO](6 milliseconds)
+      .evalTap(startTime =>
+        stateRef.get.flatMap(Renderer.render(writer, startTime, _))
+      )
+      .void
 
-  private def process: Terminal => Ref[IO, BufferState] => IO[ExitCode] =
-    term =>
-      stateRef =>
-        out(new Writer[IO](term))(stateRef)
-          .concurrently(in(new Reader[IO](term))(stateRef))
-          .compile
-          .drain
-          .as(ExitCode.Success)
-          .handleErrorWith(
-            logger
-              .error(_)("Something went wrong with the stream")
-              .as(ExitCode.Error)
-          )
+  private def process(
+      screen: Screen,
+      stateRef: Ref[IO, BufferState]
+  ): IO[ExitCode] =
+    out(new ScreenWriter[IO](screen), stateRef)
+      .concurrently(in(new ScreenReader[IO](screen), stateRef))
+      .compile
+      .drain
+      .as(ExitCode.Success)
+      .handleErrorWith(
+        logger
+          .error(_)("Something went wrong with the stream")
+          .as(ExitCode.Error)
+      )
 
   override def run(args: List[String]): IO[ExitCode] =
-    terminalRes
-      .use { term =>
+    screenRes
+      .use { screen =>
         for {
-          state   <- bufferStateRef
-          program <- process(term)(state)
+          state <- bufferStateRef
+          _ <- Try(screen.startScreen()) match {
+            case Failure(exception) =>
+              logger.error(exception)("Couldn't start screen") *> IO.raiseError(
+                exception
+              )
+            case Success(value) => IO.unit
+          }
+          program <- process(screen, state)
         } yield program
       }
       .handleErrorWith(

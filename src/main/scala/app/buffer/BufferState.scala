@@ -1,7 +1,7 @@
-package app
+package app.buffer
 
 import app.UserInput.flatten
-import app.WriteMode.Write
+import WriteMode.Write
 import app.action.Effect
 import app.action.editor.{
   DeleteEffect,
@@ -9,7 +9,8 @@ import app.action.editor.{
   StateChangeEffect,
   WriteEffect
 }
-import app.buffer.{Balance, Rope}
+import app.buffer.rope.{Balance, Rope}
+import app.*
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(
@@ -49,13 +50,20 @@ case class Selected(start: Int, end: Int) {
   override def toString: String = s"""$start - $end"""
 }
 
+sealed trait Formatting
+object Formatting {
+
+}
+
 case class BufferState(
     buffer: Rope,
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
     selected: Option[Selected],
-    writeMode: WriteMode
+    writeMode: WriteMode,
+    currentFormatting: Set[Formatting] = Set.empty[Formatting],
+    formattingMap: Map[Int, Formatting] = Map.empty[Int, Formatting]
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -77,9 +85,17 @@ case class BufferState(
 
 object BufferState {
 
-  given balance: Balance = Balance(32, 10, 32)
+  given balance: Balance =
+    Balance(weightBalance = 32, heightBalance = 10, leafChunkSize = 32)
 
   def empty =
-    new BufferState(Rope(""), 0, List.empty[Effect], 50, None, Write)
+    new BufferState(
+      buffer = Rope(""),
+      cursorPosition = 0,
+      userEffects = List.empty[Effect],
+      lineLength = 50,
+      selected = None,
+      writeMode = Write
+    )
 
 }

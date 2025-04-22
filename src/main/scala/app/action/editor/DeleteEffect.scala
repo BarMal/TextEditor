@@ -1,6 +1,7 @@
 package app.action.editor
 
-import app.{BufferState, Modifier}
+import app.Modifier
+import app.buffer.BufferState
 
 sealed trait DeleteEffect extends BufferEffect {
 

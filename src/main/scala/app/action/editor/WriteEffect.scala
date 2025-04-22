@@ -1,6 +1,6 @@
 package app.action.editor
 
-import app.{BufferState, WriteMode}
+import app.buffer.{BufferState, WriteMode}
 
 sealed trait WriteEffect extends BufferEffect {
 

@@ -1,4 +1,5 @@
-package app.buffer
+package app.buffer.rope
+import app.buffer.rope.Rope
 
 case class Node(left: Rope, right: Rope)(using balance: Balance) extends Rope:
 

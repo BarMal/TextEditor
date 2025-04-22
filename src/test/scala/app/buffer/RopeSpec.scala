@@ -1,5 +1,6 @@
 package app.buffer
 
+import app.buffer.rope.{Balance, Leaf, Node, Rope}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

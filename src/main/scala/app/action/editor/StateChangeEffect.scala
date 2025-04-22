@@ -1,7 +1,7 @@
 package app.action.editor
 
-import app.{BufferState, WriteMode}
 import app.action.Effect
+import app.buffer.{BufferState, WriteMode}
 
 sealed trait StateChangeEffect extends Effect {
   def effect: BufferState => BufferState
