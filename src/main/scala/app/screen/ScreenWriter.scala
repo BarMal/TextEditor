@@ -4,7 +4,6 @@ import app.render.Output
 import cats.effect.kernel.Async
 import cats.implicits.{catsSyntaxApplyOps, toFunctorOps, toTraverseOps}
 import cats.{Monad, MonadError}
-import com.googlecode.lanterna.{TerminalPosition, TextCharacter}
 import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.Screen.RefreshType
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -25,7 +24,7 @@ class ScreenWriter[F[_]: Async](screen: Screen) {
           Try(screen.refresh(RefreshType.DELTA)) match {
             case Failure(exception) =>
               logger
-                .error(exception)("Error printing") *>
+                .error(exception)("Error refreshing") *>
                 MonadError[F, Throwable].raiseError(exception)
             case Success(_) => Monad[F].unit
           }

@@ -65,11 +65,22 @@ object Body {
       lineLength: Int,
       selected: TogglingSet[Int],
       formattingMap: Map[Int, Formatting]
-  ): List[TextCharacter] = {
+  ): List[Output] = {
     val rope: Rope =
       if cursorVisible then buffer.replace(cursorPosition, '\u2588') else buffer
 
-    List.empty[TextCharacter]
+    rope
+      .collect()
+      .zipWithIndex
+      .map {
+        case (c, i) =>
+        Output(
+          textCharacter = new TextCharacter(c),
+          x = Math.floorMod(i, lineLength),
+          y = Math.floorDiv(i, lineLength)
+        )
+      }
+      .toList
   }
 
 }

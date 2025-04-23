@@ -3,8 +3,6 @@ package app.render
 import app.buffer.BufferState
 import app.screen.ScreenWriter
 import cats.effect.kernel.Async
-import com.googlecode.lanterna.TextCharacter
-import com.googlecode.lanterna.TextColor.ANSI
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -23,19 +21,14 @@ object Renderer {
       state: BufferState
   ): F[Unit] =
     writer.print(
-      "Hello world!".zipWithIndex
-        .map((c, i) => 
-          Output(new TextCharacter(c, ANSI.WHITE, ANSI.BLACK), i, 0)).toList)
-//        Body.fromState(
-//          state.buffer,
-//          state.cursorPosition,
-//          cursorVisible(startTime),
-//          state.lineLength,
-//          state.selected,
-//          state.formattingMap
-//        )
-    
-
-
+      Body.fromState(
+        state.buffer,
+        state.cursorPosition,
+        cursorVisible(startTime),
+        state.lineLength,
+        state.selected,
+        state.formattingMap
+      )
+    )
 
 }
