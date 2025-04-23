@@ -1,5 +1,8 @@
 package app.buffer
 
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jFactory
+
 case class TogglingSet[T] private (private val set: Set[T] = Set.empty[T])(using
     ordering: Ordering[T]
 ) {
@@ -9,7 +12,7 @@ case class TogglingSet[T] private (private val set: Set[T] = Set.empty[T])(using
     else TogglingSet(set.incl(value))
 
   def exists(value: T): Boolean = set.contains(value)
-  
+
   def isEmpty: Boolean = set.isEmpty
 
   def range: (T, T) = (set.min, set.max)

@@ -66,10 +66,10 @@ object Body {
       selected: TogglingSet[Int],
       formattingMap: Map[Int, Formatting]
   ): List[Output] = {
-    val rope: Rope =
-      if cursorVisible then buffer.replace(cursorPosition, '\u2588') else buffer
+//    val rope: Rope =
+//      if cursorVisible then buffer.replace(cursorPosition, '\u2588') else buffer
 
-    rope
+    buffer
       .collect()
       .zipWithIndex
       .map {

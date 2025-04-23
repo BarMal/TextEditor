@@ -32,11 +32,7 @@ object Main extends IOApp {
           .setTerminalEmulatorTitle("Bam")
           .setInitialTerminalSize(new TerminalSize(75, 50))
           .createTerminal()
-
-        term.setCursorVisible(false)
-        val screen = new TerminalScreen(term)
-        screen.setCursorPosition(null)
-        screen
+        new TerminalScreen(term)
       } match {
         case Failure(exception) =>
           logger.error(exception)("Failed to start screen resource") *>

@@ -3,6 +3,7 @@ package app.render
 import app.buffer.BufferState
 import app.screen.ScreenWriter
 import cats.effect.kernel.Async
+import cats.implicits.catsSyntaxApplyOps
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -29,6 +30,9 @@ object Renderer {
         state.selected,
         state.formattingMap
       )
+    ) *> writer.updateCursorPosition(
+      x = Math.floorMod(state.cursorPosition, state.lineLength),
+      y = Math.floorDiv(state.cursorPosition, state.lineLength)
     )
 
 }
