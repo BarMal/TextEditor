@@ -5,7 +5,6 @@ import app.config.AppConfig
 import app.config.AppConfig.yamlDecoder
 import app.render.Renderer
 import app.screen.{ScreenReader, ScreenWriter}
-import app.terminal.{Reader, Term, Writer}
 import cats.effect.*
 import com.googlecode.lanterna.{TerminalSize, TextCharacter}
 import com.googlecode.lanterna.screen.{Screen, TerminalScreen}
@@ -35,8 +34,9 @@ object Main extends IOApp {
           .createTerminal()
 
         term.setCursorVisible(false)
-
-        new TerminalScreen(term)
+        val screen = new TerminalScreen(term)
+        screen.setCursorPosition(null)
+        screen
       } match {
         case Failure(exception) =>
           logger.error(exception)("Failed to start screen resource") *>

@@ -1,6 +1,6 @@
 package app.action.editor
 
-import app.buffer.{BufferState, Selected}
+import app.buffer.{BufferState, TogglingSet}
 import app.Modifier
 
 sealed trait NavigateEffect(modifiers: List[Modifier]) extends BufferEffect {
@@ -9,27 +9,10 @@ sealed trait NavigateEffect(modifiers: List[Modifier]) extends BufferEffect {
 
   def moveCursor: BufferState => Int
 
-  private def selectionChange: BufferState => Option[Selected] =
-    state =>
-      state.selected match
-        case Some(Selected(start, end)) =>
-          Some(
-            Selected(
-              start,
-              if boundsCheck(state) then moveCursor(state) else end
-            )
-          )
-        case None =>
-          Some(
-            Selected(
-              state.cursorPosition,
-              if boundsCheck(state) then moveCursor(state)
-              else state.cursorPosition
-            )
-          )
+  private def selectionChange(state: BufferState): TogglingSet[Int] =
+    state.selected.offer(state.cursorPosition)
 
-  def effect: BufferState => BufferState =
-    state =>
+  def effect(state: BufferState): BufferState =
       BufferState(
         buffer = state.buffer,
         cursorPosition =
@@ -38,8 +21,10 @@ sealed trait NavigateEffect(modifiers: List[Modifier]) extends BufferEffect {
         lineLength = state.lineLength,
         selected =
           if modifiers.contains(Modifier.Shift) then selectionChange(state)
-          else None,
-        writeMode = state.writeMode
+          else TogglingSet.empty[Int],
+        writeMode = state.writeMode,
+        currentFormatting = state.currentFormatting,
+        formattingMap = state.formattingMap
       )
 }
 
@@ -80,15 +65,21 @@ object NavigateEffect {
   case class CursorToEnd(modifiers: List[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor: BufferState => Int = state =>
-      Math.min(state.buffer.weight, (1 + (state.cursorPosition / state.lineLength)) * state.lineLength)
+      Math.min(
+        state.buffer.weight,
+        (1 + (state.cursorPosition / state.lineLength)) * state.lineLength
+      )
     override def boundsCheck: BufferState => Boolean = state => true
   }
 
   case class CursorToStart(modifiers: List[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor: BufferState => Int =
-        state =>
-          Math.max(state.cursorPosition - (state.cursorPosition % state.lineLength), 0)
+      state =>
+        Math.max(
+          state.cursorPosition - (state.cursorPosition % state.lineLength),
+          0
+        )
     override def boundsCheck: BufferState => Boolean = state => true
   }
 

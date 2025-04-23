@@ -2,7 +2,12 @@ package app
 
 import app.action.Effect
 import app.action.Effect.{Escape, Unexpected}
-import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
+import app.action.editor.{
+  DeleteEffect,
+  NavigateEffect,
+  StateChangeEffect,
+  WriteEffect
+}
 import com.googlecode.lanterna.input.{KeyStroke, KeyType}
 
 case class UserInput(
@@ -15,7 +20,8 @@ case class UserInput(
 object UserInput {
 
   def keyStrokeToEffect(input: UserInput): Effect = input.keyType match
-    case KeyType.Character  => WriteEffect.TogglingWrite(input.character.getOrElse('?'))
+    case KeyType.Character =>
+      WriteEffect.TogglingWrite(input.character.getOrElse('?'))
     case KeyType.Enter      => WriteEffect.Return
     case KeyType.Tab        => WriteEffect.Tab
     case KeyType.Backspace  => DeleteEffect.DeleteLeft(input.modifiers)
@@ -68,13 +74,12 @@ object UserInput {
 
 }
 
-sealed trait Modifier
+enum Modifier:
+  case Control
+  case Alt
+  case Shift
 
 object Modifier {
-  case object Control extends Modifier
-  case object Alt     extends Modifier
-  case object Shift   extends Modifier
-
   def apply(keyStroke: KeyStroke): List[Modifier] =
     List(
       Option.when(keyStroke.isCtrlDown)(Modifier.Control),

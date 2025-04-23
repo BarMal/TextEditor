@@ -11,6 +11,7 @@ import app.action.editor.{
 }
 import app.buffer.rope.{Balance, Rope}
 import app.*
+import com.googlecode.lanterna.TextColor.ANSI
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(
@@ -34,25 +35,14 @@ case class MenuState() extends Focusable[MenuState] {
   override def ++(in: KeyStroke): MenuState = this
 }
 
-sealed trait WriteMode
-object WriteMode {
-  case object Write     extends WriteMode
-  case object Overwrite extends WriteMode
+enum WriteMode:
+  case Write
+  case Overwrite
 
+object WriteMode {
   def flip(mode: WriteMode): WriteMode = mode match
     case Write     => Overwrite
     case Overwrite => Write
-}
-
-case class Selected(start: Int, end: Int) {
-  def length: Int = Math.abs(start - end)
-
-  override def toString: String = s"""$start - $end"""
-}
-
-sealed trait Formatting
-object Formatting {
-
 }
 
 case class BufferState(
@@ -60,10 +50,10 @@ case class BufferState(
     cursorPosition: Int,
     userEffects: List[Effect],
     lineLength: Int,
-    selected: Option[Selected],
+    selected: TogglingSet[Int],
     writeMode: WriteMode,
-    currentFormatting: Set[Formatting] = Set.empty[Formatting],
-    formattingMap: Map[Int, Formatting] = Map.empty[Int, Formatting]
+    currentFormatting: Set[Formatting],
+    formattingMap: Map[Int, Formatting]
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -78,8 +68,10 @@ case class BufferState(
           cursorPosition = cursorPosition,
           userEffects = others :: userEffects,
           lineLength = lineLength,
-          selected = None,
-          writeMode = Write
+          selected = selected,
+          writeMode = Write,
+          currentFormatting = currentFormatting,
+          formattingMap = formattingMap
         )
 }
 
@@ -94,8 +86,10 @@ object BufferState {
       cursorPosition = 0,
       userEffects = List.empty[Effect],
       lineLength = 50,
-      selected = None,
-      writeMode = Write
+      selected = TogglingSet.empty[Int],
+      writeMode = Write,
+      currentFormatting = Set.empty[Formatting],
+      formattingMap = Map.empty[Int, Formatting]
     )
 
 }

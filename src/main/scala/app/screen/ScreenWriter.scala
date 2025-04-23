@@ -1,10 +1,10 @@
 package app.screen
 
-import app.render.Element
+import app.render.Output
 import cats.effect.kernel.Async
 import cats.implicits.{catsSyntaxApplyOps, toFunctorOps, toTraverseOps}
 import cats.{Monad, MonadError}
-import com.googlecode.lanterna.TextCharacter
+import com.googlecode.lanterna.{TerminalPosition, TextCharacter}
 import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.Screen.RefreshType
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -17,11 +17,11 @@ class ScreenWriter[F[_]: Async](screen: Screen) {
   private val logger: SelfAwareStructuredLogger[F] =
     Slf4jFactory.create[F].getLogger
 
-  def print(elements: List[Element]): F[Unit] =
+  def print(elements: List[Output]): F[Unit] =
     elements
       .traverse { elem =>
         Async[F].blocking {
-          screen.setCharacter(0, 0, new TextCharacter('a'))
+          screen.setCharacter(elem.x, elem.y, elem.textCharacter)
           Try(screen.refresh(RefreshType.DELTA)) match {
             case Failure(exception) =>
               logger

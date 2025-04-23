@@ -1,40 +1,39 @@
-package app.render
-
-import app.action.Effect
-import app.buffer.{BufferState, Selected}
-import cats.Show
-import com.googlecode.lanterna.TextColor.ANSI
-
-case class Header(
-    cursorPosition: (Int, Int),
-    bufferSize: Int,
-    lastEffect: Option[Effect],
-    selected: Option[Selected]
-) extends Renderable:
-  override def asElement: Element =
-    Element(Header.showInstance.show(this), ANSI.WHITE, ANSI.RED)
-
-object Header {
-
-  private def cursorPositionFromState: BufferState => (Int, Int) = state =>
-    (
-      state.cursorPosition % state.lineLength,
-      Math.floorDiv(state.cursorPosition, state.lineLength)
-    )
-
-  def apply(state: BufferState): Header = Header(
-    cursorPosition = cursorPositionFromState(state),
-    bufferSize = state.buffer.weight,
-    lastEffect = state.userEffects.headOption,
-    selected = state.selected
-  )
-
-  given showInstance: Show[Header] =
-    (t: Header) =>
-      s"""Cursor position: ${t.cursorPosition._1}, ${t.cursorPosition._2} | Buffer size: ${t.bufferSize} | Last effect: ${t.lastEffect
-          .map(_.toString)
-          .getOrElse("N/A")} | Selected range: ${t.selected
-          .map(_.toString)
-          .getOrElse("Nothing selected")}"""
-
-}
+//package app.render
+//
+//import app.action.Effect
+//import app.buffer.{BufferState, TogglingSet}
+//import cats.Show
+//import com.googlecode.lanterna.TextCharacter
+//import com.googlecode.lanterna.TextColor.ANSI
+//
+//case class Header(
+//    cursorPosition: (Int, Int),
+//    bufferSize: Int,
+//    lastEffect: Option[Effect],
+//    selected: TogglingSet[Int]
+//) extends Renderable:
+//  def toTextCharacters: List[TextCharacter] =
+//    Header.showInstance.show(this).map(char => new TextCharacter(char)).toList
+//
+//object Header {
+//
+//  private def cursorPositionFromState: BufferState => (Int, Int) = state =>
+//    (
+//      state.cursorPosition % state.lineLength,
+//      Math.floorDiv(state.cursorPosition, state.lineLength)
+//    )
+//
+//  def apply(state: BufferState): Header = Header(
+//    cursorPosition = cursorPositionFromState(state),
+//    bufferSize = state.buffer.weight,
+//    lastEffect = state.userEffects.headOption,
+//    selected = state.selected
+//  )
+//
+//  given showInstance: Show[Header] =
+//    (t: Header) =>
+//      s"""Cursor position: ${t.cursorPosition._1}, ${t.cursorPosition._2} | Buffer size: ${t.bufferSize} | Last effect: ${t.lastEffect
+//          .map(_.toString)
+//          .getOrElse("N/A")} | Selected range: ${t.selected.toString}"""
+//
+//}

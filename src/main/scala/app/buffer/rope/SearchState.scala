@@ -1,13 +1,7 @@
 package app.buffer.rope
 
-sealed trait SearchState
+enum SearchState:
+  case Found(index: Int)
+  case Poll
+  case PollAndPrune
 
-object SearchState {
-  case class Found(index: Int) extends SearchState
-
-  sealed trait NotFound extends SearchState
-
-  case object Poll extends NotFound
-
-  case object PollAndPrune extends NotFound
-}

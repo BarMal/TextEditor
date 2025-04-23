@@ -2,9 +2,9 @@ package app.render
 
 import app.buffer.BufferState
 import app.screen.ScreenWriter
-import app.terminal.Writer
 import cats.effect.kernel.Async
-import com.googlecode.lanterna.TextColor
+import com.googlecode.lanterna.TextCharacter
+import com.googlecode.lanterna.TextColor.ANSI
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.language.postfixOps
@@ -23,25 +23,19 @@ object Renderer {
       state: BufferState
   ): F[Unit] =
     writer.print(
-      List(
-        Header(state).asElement,
-        Spacer(backgroundColour = TextColor.ANSI.RED).asElement,
-        Spacer(backgroundColour = TextColor.ANSI.RED).asElement
-      ) ++ Body.foo(state, cursorVisible(startTime))
-    )
+      "Hello world!".zipWithIndex
+        .map((c, i) => 
+          Output(new TextCharacter(c, ANSI.WHITE, ANSI.BLACK), i, 0)).toList)
+//        Body.fromState(
+//          state.buffer,
+//          state.cursorPosition,
+//          cursorVisible(startTime),
+//          state.lineLength,
+//          state.selected,
+//          state.formattingMap
+//        )
+    
 
-  def render[F[_]: Async](
-      writer: Writer[F],
-      startTime: Long,
-      state: BufferState
-  ): F[Unit] =
-    writer
-      .print(
-        List(
-          Header(state).asElement,
-          Spacer(backgroundColour = TextColor.ANSI.RED).asElement,
-          Spacer(backgroundColour = TextColor.ANSI.RED).asElement
-        ) ++ Body.foo(state, cursorVisible(startTime))
-      )
+
 
 }

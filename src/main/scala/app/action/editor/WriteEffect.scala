@@ -1,6 +1,6 @@
 package app.action.editor
 
-import app.buffer.{BufferState, WriteMode}
+import app.buffer.{BufferState, TogglingSet, WriteMode}
 
 sealed trait WriteEffect extends BufferEffect {
 
@@ -11,8 +11,10 @@ sealed trait WriteEffect extends BufferEffect {
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,
-        selected = None,
-        writeMode = state.writeMode
+        selected = TogglingSet.empty[Int],
+        writeMode = state.writeMode,
+        currentFormatting = state.currentFormatting,
+        formattingMap = state.formattingMap
       )
 
   protected def overwrite: BufferState => Char => BufferState = state =>
@@ -22,27 +24,29 @@ sealed trait WriteEffect extends BufferEffect {
         cursorPosition = state.cursorPosition + 1,
         userEffects = this :: state.userEffects,
         lineLength = state.lineLength,
-        selected = None,
-        writeMode = state.writeMode
+        selected = TogglingSet.empty[Int],
+        writeMode = state.writeMode,
+        currentFormatting = state.currentFormatting,
+        formattingMap = state.formattingMap
       )
 }
 
 object WriteEffect {
 
   case class TogglingWrite(char: Char) extends WriteEffect {
-    override def effect: BufferState => BufferState = state =>
+    override def effect(state: BufferState): BufferState =
       state.writeMode match
         case WriteMode.Write     => write(state)(char)
         case WriteMode.Overwrite => overwrite(state)(char)
   }
 
   case object Return extends WriteEffect {
-    override def effect: BufferState => BufferState = state =>
+    override def effect(state: BufferState): BufferState =
       write(state)('\n')
   }
 
   case object Tab extends WriteEffect {
-    override def effect: BufferState => BufferState = state =>
+    override def effect(state: BufferState): BufferState =
       write(state)('\t')
   }
 
