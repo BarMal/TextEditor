@@ -16,6 +16,9 @@ object Renderer {
     val elapsedTime = System.currentTimeMillis() - startTime
     Math.floorDiv(elapsedTime, cursorBlinkInterval.toMillis) % 2 == 0
 
+  private val bodyRowOffset: Int    = 2
+  private val bodyColumnOffset: Int = 4
+
   def render[F[_]: Async](
       writer: ScreenWriter[F],
       startTime: Long,
@@ -28,11 +31,14 @@ object Renderer {
         cursorVisible(startTime),
         state.lineLength,
         state.selected,
-        state.formattingMap
+        state.formattingMap,
+        bodyRowOffset,
+        bodyColumnOffset
       )
     ) *> writer.updateCursorPosition(
-      x = Math.floorMod(state.cursorPosition, state.lineLength),
-      y = Math.floorDiv(state.cursorPosition, state.lineLength)
+      x = Math.floorMod(state.cursorPosition, state.lineLength) + bodyRowOffset,
+      y =
+        Math.floorDiv(state.cursorPosition, state.lineLength) + bodyColumnOffset
     )
 
 }

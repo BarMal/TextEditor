@@ -2,7 +2,12 @@ package app.screen
 
 import app.render.Output
 import cats.effect.kernel.Async
-import cats.implicits.{catsSyntaxApplyOps, toFunctorOps, toTraverseOps}
+import cats.implicits.{
+  catsSyntaxApplyOps,
+  toFlatMapOps,
+  toFunctorOps,
+  toTraverseOps
+}
 import cats.{Monad, MonadError}
 import com.googlecode.lanterna.TerminalPosition
 import com.googlecode.lanterna.screen.Screen
@@ -16,15 +21,18 @@ class ScreenWriter[F[_]: Async](screen: Screen) {
 
   private val logger: SelfAwareStructuredLogger[F] =
     Slf4jFactory.create[F].getLogger
-  
+
   def updateCursorPosition(x: Int, y: Int): F[Unit] =
     Async[F].blocking(screen.setCursorPosition(new TerminalPosition(x, y)))
 
   def print(elements: List[Output]): F[Unit] =
-    elements
-      .traverse { elem =>
-        Async[F].blocking {
-          screen.setCharacter(elem.x, elem.y, elem.textCharacter)
+    Async[F].blocking(screen.clear()) *>
+      elements
+        .traverse(elem =>
+          Async[F]
+            .blocking(screen.setCharacter(elem.x, elem.y, elem.textCharacter))
+        )
+        .flatTap { _ =>
           Try(screen.refresh(RefreshType.DELTA)) match {
             case Failure(exception) =>
               logger
@@ -33,7 +41,6 @@ class ScreenWriter[F[_]: Async](screen: Screen) {
             case Success(_) => Monad[F].unit
           }
         }
-      }
-      .as(())
+        .as(())
 
 }

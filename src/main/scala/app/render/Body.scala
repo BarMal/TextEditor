@@ -64,7 +64,9 @@ object Body {
       cursorVisible: Boolean,
       lineLength: Int,
       selected: TogglingSet[Int],
-      formattingMap: Map[Int, Formatting]
+      formattingMap: Map[Int, Formatting],
+      bodyRowOffset: Int,
+      bodyColumnOffset: Int
   ): List[Output] = {
 //    val rope: Rope =
 //      if cursorVisible then buffer.replace(cursorPosition, '\u2588') else buffer
@@ -76,8 +78,8 @@ object Body {
         case (c, i) =>
         Output(
           textCharacter = new TextCharacter(c),
-          x = Math.floorMod(i, lineLength),
-          y = Math.floorDiv(i, lineLength)
+          x = Math.floorMod(i, lineLength) + bodyRowOffset,
+          y = Math.floorDiv(i, lineLength) + bodyColumnOffset
         )
       }
       .toList
