@@ -45,3 +45,10 @@ build/
 
 ### Scala ###
 .bsp/
+.bloop/root-test.json
+/.bloop
+/.metals
+/.idea
+/project
+/.idea
+.idea/misc.xml
