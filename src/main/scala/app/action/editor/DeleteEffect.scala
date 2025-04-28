@@ -17,18 +17,6 @@ sealed trait DeleteEffect extends BufferEffect {
       formattingMap = state.formattingMap
     )
 
-  protected def deleteNLeft(state: BufferState, n: Int): BufferState =
-    BufferState(
-      buffer = state.buffer.deleteLeft(state.cursorPosition, n),
-      cursorPosition = Math.max(state.cursorPosition - n, 0),
-      userEffects = this :: state.userEffects,
-      lineLength = state.lineLength,
-      selected = TogglingSet.empty[Int],
-      writeMode = state.writeMode,
-      currentFormatting = state.currentFormatting,
-      formattingMap = state.formattingMap
-    )
-
   protected def deleteRight(state: BufferState): BufferState =
     BufferState(
       buffer = state.buffer.deleteRight(state.cursorPosition, 1),
@@ -41,22 +29,14 @@ sealed trait DeleteEffect extends BufferEffect {
       formattingMap = state.formattingMap
     )
 
-  protected def deleteNRight(state: BufferState, n: Int): BufferState =
+  protected def deleteRange(
+      state: BufferState,
+      start: Int,
+      end: Int
+  ): BufferState =
     BufferState(
-      buffer = state.buffer.deleteRight(state.cursorPosition, n),
-      cursorPosition = Math.min(state.cursorPosition, state.buffer.weight),
-      userEffects = this :: state.userEffects,
-      lineLength = state.lineLength,
-      selected = TogglingSet.empty[Int],
-      writeMode = state.writeMode,
-      currentFormatting = state.currentFormatting,
-      formattingMap = state.formattingMap
-    )
-
-  protected def deleteWordLeft(state: BufferState): BufferState =
-    BufferState(
-      buffer = state.buffer.deleteLeft(state.cursorPosition, 1),
-      cursorPosition = Math.min(state.cursorPosition, state.buffer.weight),
+      buffer = state.buffer.deleteRight(start, start + end),
+      cursorPosition = start,
       userEffects = this :: state.userEffects,
       lineLength = state.lineLength,
       selected = TogglingSet.empty[Int],
@@ -70,12 +50,11 @@ sealed trait DeleteEffect extends BufferEffect {
 object DeleteEffect {
 
   case class DeleteLeft(modifiers: List[Modifier]) extends DeleteEffect {
-
     override def effect(state: BufferState): BufferState =
       if state.selected.isEmpty then deleteLeft(state)
       else {
         val (start, end) = state.selected.range
-        deleteNLeft(state, start - end)
+        deleteRange(state, start, end)
       }
   }
 
@@ -84,7 +63,7 @@ object DeleteEffect {
       if state.selected.isEmpty then deleteRight(state)
       else {
         val (start, end) = state.selected.range
-        deleteNRight(state, start - end)
+        deleteRange(state, start, end)
       }
   }
 
