@@ -1,11 +1,25 @@
-//package app.render
-//
+package app.render
+
 //import app.action.Effect
 //import app.buffer.{BufferState, TogglingSet}
 //import cats.Show
 //import com.googlecode.lanterna.TextCharacter
 //import com.googlecode.lanterna.TextColor.ANSI
-//
+import app.buffer.rope.Rope
+import app.buffer.TogglingSet
+
+object Header {
+
+  def fromState(
+      buffer: Rope,
+      cursorPosition: Int,
+      selected: TogglingSet[Int],
+      lineLength: Int
+  ): List[Output] =
+    
+    List.empty[Output]
+}
+
 //case class Header(
 //    cursorPosition: (Int, Int),
 //    bufferSize: Int,

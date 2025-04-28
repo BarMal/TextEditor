@@ -25,16 +25,22 @@ object Renderer {
       state: BufferState
   ): F[Unit] =
     writer.print(
-      Body.fromState(
+      Header.fromState(
         state.buffer,
         state.cursorPosition,
-        cursorVisible(startTime),
-        state.lineLength,
         state.selected,
-        state.formattingMap,
-        bodyRowOffset,
-        bodyColumnOffset
-      )
+        state.lineLength
+      ) ++
+        Body.fromState(
+          state.buffer,
+          state.cursorPosition,
+          cursorVisible(startTime),
+          state.lineLength,
+          state.selected,
+          state.formattingMap,
+          bodyRowOffset,
+          bodyColumnOffset
+        )
     ) *> writer.updateCursorPosition(
       x = Math.floorMod(state.cursorPosition, state.lineLength) + bodyRowOffset,
       y =
