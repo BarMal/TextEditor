@@ -2,16 +2,16 @@ package app
 
 import app.buffer.BufferState
 import app.config.AppConfig
-import app.config.AppConfig.yamlDecoder
 import app.render.Renderer
 import app.screen.{ScreenReader, ScreenWriter}
 import cats.effect.*
-import com.googlecode.lanterna.{TerminalSize, TextCharacter}
+import com.googlecode.lanterna.TerminalSize
 import com.googlecode.lanterna.screen.{Screen, TerminalScreen}
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
-import org.virtuslab.yaml.*
+import pureconfig.ConfigReader.Result
+import pureconfig.ConfigSource
 
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
@@ -22,8 +22,8 @@ object Main extends IOApp {
   private val logger: SelfAwareStructuredLogger[IO] =
     Slf4jFactory.create[IO].getLogger
 
-  private val config: Either[YamlError, AppConfig] =
-    scala.io.Source.fromResource("config.yml").mkString.as[AppConfig]
+  private val config: Result[AppConfig] =
+    ConfigSource.default.load[AppConfig]
 
   private def screenRes: Resource[IO, Screen] =
     Resource.make {

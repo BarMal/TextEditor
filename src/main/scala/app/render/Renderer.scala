@@ -29,7 +29,8 @@ object Renderer {
         state.buffer,
         state.cursorPosition,
         state.selected,
-        state.lineLength
+        state.lineLength,
+        state.userEffects
       ) ++
         Body.fromState(
           state.buffer,

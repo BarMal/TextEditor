@@ -10,17 +10,17 @@ lazy val root = (project in file("."))
   )
 
 libraryDependencies ++= Seq(
-  "org.typelevel"          %% "cats-effect" % "3.6-623178c",
-  "co.fs2"                 %% "fs2-core"    % "3.12.0-RC2",
-  "com.googlecode.lanterna" % "lanterna"    % "3.2.0-alpha1",
-  "org.virtuslab"          %% "scala-yaml"  % "0.3.0",
-  "org.scalatest"          %% "scalatest"   % "3.2.19" % "test"
+  "org.typelevel"          %% "cats-effect"     % "3.7-4972921",
+  "co.fs2"                 %% "fs2-core"        % "3.13.0-M2",
+  "com.googlecode.lanterna" % "lanterna"        % "3.2.0-alpha1",
+  "org.scalatest"          %% "scalatest"       % "3.2.19" % "test",
+  "com.github.pureconfig"  %% "pureconfig-core" % "0.17.9"
 )
 
 val log4CatsVersion = "2.7.0"
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "log4cats-core" % log4CatsVersion,
-  "org.typelevel" %% "log4cats-slf4j" % log4CatsVersion,
+  "org.typelevel" %% "log4cats-core"   % log4CatsVersion,
+  "org.typelevel" %% "log4cats-slf4j"  % log4CatsVersion,
   "ch.qos.logback" % "logback-classic" % "1.5.18"
 )

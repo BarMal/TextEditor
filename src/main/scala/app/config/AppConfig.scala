@@ -1,9 +1,7 @@
 package app.config
 
-import org.virtuslab.yaml.{ConstructError, LoadSettings, Node, YamlDecoder}
+import pureconfig.ConfigReader
 
-case class AppConfig()
 
-object AppConfig {
-  given yamlDecoder: YamlDecoder[AppConfig] = YamlDecoder.derived[AppConfig]
-}
+
+case class AppConfig() derives ConfigReader

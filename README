@@ -1,7 +1,6 @@
 A simple text editor written in Scala 3 using fs2 and lanterna
 
 In-progress:
-- Use higher lanterna abstraction for better graphical performance
 - Add basic formatting (SGR)
 
 TODO: 
