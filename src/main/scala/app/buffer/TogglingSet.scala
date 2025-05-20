@@ -1,8 +1,5 @@
 package app.buffer
 
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jFactory
-
 case class TogglingSet[T] private (private val set: Set[T] = Set.empty[T])(using
     ordering: Ordering[T]
 ) {

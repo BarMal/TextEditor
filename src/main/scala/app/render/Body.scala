@@ -2,6 +2,7 @@ package app.render
 
 import app.buffer.rope.Rope
 import app.buffer.{BufferState, Formatting, TogglingSet}
+import com.googlecode.lanterna.TextColor.ANSI
 import com.googlecode.lanterna.{TerminalTextUtils, TextCharacter}
 
 //
@@ -75,17 +76,22 @@ object Body {
   ): List[Output] =
     buffer
       .collect()
+      .zipWithIndex
       .foldLeft(OutputState(columnOffset, rowOffset)) {
-        case (OutputState(col, row, acc), char) =>
+        case (OutputState(col, row, acc), (char, index)) =>
 
           val isEndOfRow: Boolean =
             col != 0 && Math.floorMod(col, lineLength) == 0
+
+          val (fore, back) =
+            if selected.exists(index) then (ANSI.BLACK, ANSI.WHITE)
+            else (ANSI.WHITE, ANSI.BLACK)
 
           val outputs: List[Output] =
             if !TerminalTextUtils.isControlCharacter(char) then
               List(
                 Output(
-                  textCharacter = new TextCharacter(char),
+                  textCharacter = new TextCharacter(char, fore, back),
                   x = col,
                   y = row
                 )
