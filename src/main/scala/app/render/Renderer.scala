@@ -40,7 +40,7 @@ object Renderer {
       bodyColumnOffset
     )
     val (x, y) = body.reverse.zipWithIndex
-      .map((output, index) => index + 1 -> (output.x + 1b, output.y))
+      .map((output, index) => index + 1 -> (output.x + 1, output.y))
       .toMap
       .getOrElse(state.cursorPosition, (bodyColumnOffset, bodyRowOffset))
     writer.print(header ++ body) *> writer.updateCursorPosition(x, y)
