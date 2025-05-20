@@ -20,8 +20,6 @@ case class UserInput(
 object UserInput {
 
   def keyStrokeToEffect(input: UserInput): Effect = input.keyType match
-    case KeyType.Character =>
-      WriteEffect.TogglingWrite(input.character.getOrElse('?'))
     case KeyType.Enter      => WriteEffect.Return
     case KeyType.Tab        => WriteEffect.Tab
     case KeyType.Backspace  => DeleteEffect.DeleteLeft(input.modifiers)
@@ -37,6 +35,8 @@ object UserInput {
     case KeyType.Escape     => Escape
     case KeyType.Insert     => StateChangeEffect.ToggleWriteMode
     case KeyType.Unknown    => Unexpected(input)
+    case KeyType.Character =>
+      WriteEffect.TogglingWrite(input.character.getOrElse('?'))
     case _                  => Unexpected(input)
     case KeyType.ReverseTab => ???
     case KeyType.F1         => ???

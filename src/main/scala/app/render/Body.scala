@@ -2,7 +2,7 @@ package app.render
 
 import app.buffer.rope.Rope
 import app.buffer.{BufferState, Formatting, TogglingSet}
-import com.googlecode.lanterna.TextCharacter
+import com.googlecode.lanterna.{TerminalTextUtils, TextCharacter}
 
 //
 //import app.buffer.BufferState
@@ -58,32 +58,78 @@ import com.googlecode.lanterna.TextCharacter
 //
 object Body {
 
+  case class OutputState(col: Int, row: Int, acc: List[Output])
+
+  object OutputState {
+    def apply(x: Int, y: Int): OutputState =
+      OutputState(x, y, List.empty[Output])
+  }
+
   def fromState(
       buffer: Rope,
-      cursorPosition: Int,
-      cursorVisible: Boolean,
       lineLength: Int,
       selected: TogglingSet[Int],
       formattingMap: Map[Int, Formatting],
-      bodyRowOffset: Int,
-      bodyColumnOffset: Int
-  ): List[Output] = {
-//    val rope: Rope =
-//      if cursorVisible then buffer.replace(cursorPosition, '\u2588') else buffer
-
+      rowOffset: Int,
+      columnOffset: Int
+  ): List[Output] =
     buffer
       .collect()
-      .zipWithIndex
-      .map {
-        case (c, i) =>
-        Output(
-          textCharacter = new TextCharacter(c),
-          x = Math.floorMod(i, lineLength) + bodyRowOffset,
-          y = Math.floorDiv(i, lineLength) + bodyColumnOffset
-        )
+      .foldLeft(OutputState(columnOffset, rowOffset)) {
+        case (OutputState(col, row, acc), char) =>
+
+          val isEndOfRow: Boolean =
+            col != 0 && Math.floorMod(col, lineLength) == 0
+
+          val outputs: List[Output] =
+            if !TerminalTextUtils.isControlCharacter(char) then
+              List(
+                Output(
+                  textCharacter = new TextCharacter(char),
+                  x = col,
+                  y = row
+                )
+              )
+            else List.empty[Output]
+
+          char match {
+            case '\n' => OutputState(columnOffset, row + 1, acc)
+            case '\t' => OutputState(col + 4, row, acc)
+            case '\b' => OutputState(col, row, acc)
+            case _ if isEndOfRow =>
+              OutputState(columnOffset, row + 1, outputs ++ acc)
+            case _ => OutputState(col + 1, row, outputs ++ acc)
+          }
       }
-      .toList
-  }
+      .acc
+
+//  def fromState(
+//      buffer: Rope,
+//      lineLength: Int,
+//      selected: TogglingSet[Int],
+//      formattingMap: Map[Int, Formatting],
+//      bodyRowOffset: Int,
+//      bodyColumnOffset: Int
+//  ): List[Output] =
+//    buffer
+//      .collect()
+//      .zipWithIndex
+//      .flatMap {
+//        case (c, i) if !TerminalTextUtils.isControlCharacter(c) =>
+//          List(
+//            Output(
+//              textCharacter = new TextCharacter(c),
+//              x = Math.floorMod(i, lineLength) + bodyRowOffset,
+//              y = Math.floorDiv(i, lineLength) + bodyColumnOffset
+//            )
+//          )
+//        case (c, i) if TerminalTextUtils.isPrintableCharacter(c) =>
+//          controlCharacterHandler(c, i)
+//        case (c, i) =>
+//          println(s"""$c at position $i was not printable""")
+//          List.empty[Output]
+//      }
+//      .toList
 
 }
 //  def foo(

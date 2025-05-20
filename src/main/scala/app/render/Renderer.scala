@@ -23,29 +23,27 @@ object Renderer {
       writer: ScreenWriter[F],
       startTime: Long,
       state: BufferState
-  ): F[Unit] =
-    writer.print(
-      Header.fromState(
-        state.buffer,
-        state.cursorPosition,
-        state.selected,
-        state.lineLength,
-        state.userEffects
-      ) ++
-        Body.fromState(
-          state.buffer,
-          state.cursorPosition,
-          cursorVisible(startTime),
-          state.lineLength,
-          state.selected,
-          state.formattingMap,
-          bodyRowOffset,
-          bodyColumnOffset
-        )
-    ) *> writer.updateCursorPosition(
-      x = Math.floorMod(state.cursorPosition, state.lineLength) + bodyRowOffset,
-      y =
-        Math.floorDiv(state.cursorPosition, state.lineLength) + bodyColumnOffset
+  ): F[Unit] = {
+    val header = Header.fromState(
+      state.buffer,
+      state.cursorPosition,
+      state.selected,
+      state.lineLength,
+      state.userEffects
     )
+    val body = Body.fromState(
+      state.buffer,
+      state.lineLength,
+      state.selected,
+      state.formattingMap,
+      bodyRowOffset,
+      bodyColumnOffset
+    )
+    val (x, y) = body.reverse.zipWithIndex
+      .map((output, index) => index + 1 -> (output.x + 1b, output.y))
+      .toMap
+      .getOrElse(state.cursorPosition, (bodyColumnOffset, bodyRowOffset))
+    writer.print(header ++ body) *> writer.updateCursorPosition(x, y)
+  }
 
 }

@@ -15,7 +15,7 @@ class ScreenReader[F[_]: Async](screen: Screen) {
   private val logger: SelfAwareStructuredLogger[F] =
     Slf4jFactory.create[F].getLogger
 
-  private def safeRead: F[Option[KeyStroke]] =
+  private def read: F[Option[KeyStroke]] =
     Async[F].blocking(Try(Option(screen.readInput()))).flatMap {
       case Success(value) => Applicative[F].pure(value)
       case Failure(exception) =>
@@ -28,7 +28,7 @@ class ScreenReader[F[_]: Async](screen: Screen) {
 
   def readStream: fs2.Stream[F, KeyStroke] =
     fs2.Stream
-      .repeatEval(safeRead)
+      .repeatEval(read)
       .collect { case Some(value) => value }
 
 }
