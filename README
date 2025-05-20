@@ -1,14 +1,13 @@
 A simple text editor written in Scala 3 using fs2 and lanterna
 
 In-progress:
-- Add basic formatting (SGR)
+- Implement reading from/writing to file
 
 TODO: 
 
 - Finish rest of input keys mappings
 - Consider using the State monad to handle state
 - Finish implementing behaviours
-- Implement reading from/writing to file
 - Implement config
 - Add menu state
 - Undo/redo
