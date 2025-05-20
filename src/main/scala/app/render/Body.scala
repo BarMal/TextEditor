@@ -1,9 +1,11 @@
 package app.render
 
+import app.buffer
+import app.buffer.Formatting.*
 import app.buffer.rope.Rope
 import app.buffer.{BufferState, Formatting, TogglingSet}
 import com.googlecode.lanterna.TextColor.ANSI
-import com.googlecode.lanterna.{TerminalTextUtils, TextCharacter}
+import com.googlecode.lanterna.{SGR, TerminalTextUtils, TextCharacter}
 
 //
 //import app.buffer.BufferState
@@ -70,7 +72,7 @@ object Body {
       buffer: Rope,
       lineLength: Int,
       selected: TogglingSet[Int],
-      formattingMap: Map[Int, Formatting],
+      formattingMap: Map[Int, Set[Formatting]],
       rowOffset: Int,
       columnOffset: Int
   ): List[Output] =
@@ -83,15 +85,21 @@ object Body {
           val isEndOfRow: Boolean =
             col != 0 && Math.floorMod(col, lineLength) == 0
 
-          val (fore, back) =
-            if selected.exists(index) then (ANSI.BLACK, ANSI.WHITE)
-            else (ANSI.WHITE, ANSI.BLACK)
+          val selectedFormatting: List[SGR] = if selected.exists(index) then List(SGR.REVERSE) else List.empty[SGR]
+
+          val sgrs: List[SGR] = selectedFormatting ++ formattingMap.getOrElse(index, Set.empty[Formatting]).map {
+            case Bold => SGR.BOLD
+            case Italic => SGR.ITALIC
+            case Underscore => SGR.UNDERLINE
+            case Inverted => SGR.REVERSE
+          }.toList
+
 
           val outputs: List[Output] =
             if !TerminalTextUtils.isControlCharacter(char) then
               List(
                 Output(
-                  textCharacter = new TextCharacter(char, fore, back),
+                  textCharacter = new TextCharacter(char, ANSI.BLACK_BRIGHT, ANSI.WHITE, sgrs*),
                   x = col,
                   y = row
                 )

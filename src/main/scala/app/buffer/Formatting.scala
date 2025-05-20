@@ -7,5 +7,3 @@ enum Formatting:
   case Italic
   case Underscore
   case Inverted
-  case Foreground(value: ANSI)
-  case Background(value: ANSI)

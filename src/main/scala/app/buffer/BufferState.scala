@@ -53,7 +53,7 @@ case class BufferState(
     selected: TogglingSet[Int],
     writeMode: WriteMode,
     currentFormatting: Set[Formatting],
-    formattingMap: Map[Int, Formatting]
+    formattingMap: Map[Int, Set[Formatting]]
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -89,7 +89,7 @@ object BufferState {
       selected = TogglingSet.empty[Int],
       writeMode = Write,
       currentFormatting = Set.empty[Formatting],
-      formattingMap = Map.empty[Int, Formatting]
+      formattingMap = Map.empty[Int, Set[Formatting]]
     )
 
 }
