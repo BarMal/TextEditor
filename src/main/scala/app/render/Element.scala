@@ -16,7 +16,8 @@ object Element {
       Output(
         textCharacter = new TextCharacter(c, foregroundColour, background, sgr*),
         x = Math.floorMod(i, lineLength),
-        y = Math.floorDiv(i, lineLength)
+        y = Math.floorDiv(i, lineLength),
+        mappedIndex = i
       )
     }.toList
 

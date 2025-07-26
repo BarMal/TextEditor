@@ -16,8 +16,8 @@ object Header {
       effects: List[Effect]
   ): List[Output] = {
     val cursorPositionElement = Element.fromString(
-      s"""CursorPosition: ${Math.floorMod(cursorPosition, lineLength)}, ${Math
-          .floorDiv(cursorPosition, lineLength)}""",
+      s"""CursorPosition: ${Math.floorDiv(cursorPosition, lineLength)}, ${Math
+          .floorMod(cursorPosition, lineLength)}""",
       lineLength,
       ANSI.YELLOW,
       ANSI.BLUE,

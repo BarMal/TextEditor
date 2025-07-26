@@ -51,20 +51,16 @@ object DeleteEffect {
 
   case class DeleteLeft(modifiers: List[Modifier]) extends DeleteEffect {
     override def effect(state: BufferState): BufferState =
-      if state.selected.isEmpty then deleteLeft(state)
-      else {
-        val (start, end) = state.selected.range
-        deleteRange(state, start, end)
-      }
+      val (start, end) =
+        state.selected.range((state.cursorPosition - 1, state.cursorPosition))
+      deleteRange(state, start, end)
   }
 
   case class DeleteRight(modifiers: List[Modifier]) extends DeleteEffect {
     override def effect(state: BufferState): BufferState =
-      if state.selected.isEmpty then deleteRight(state)
-      else {
-        val (start, end) = state.selected.range
-        deleteRange(state, start, end)
-      }
+      val (start, end) =
+        state.selected.range((state.cursorPosition, state.cursorPosition + 1))
+      deleteRange(state, start, end)
   }
 
 }

@@ -12,7 +12,11 @@ case class TogglingSet[T] private (private val set: Set[T] = Set.empty[T])(using
 
   def isEmpty: Boolean = set.isEmpty
 
-  def range: (T, T) = (set.min, set.max)
+  def range(default: (T, T)): (T, T) =
+    (for {
+      min <- set.minOption
+      max <- set.maxOption
+    } yield (min, max)).getOrElse(default)
 
   override def toString: String = if set.isEmpty then "Nothing selected"
   else s"""${set.min}-${set.max}"""

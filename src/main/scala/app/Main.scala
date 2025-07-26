@@ -65,10 +65,8 @@ object Main extends IOApp {
   ): fs2.Stream[IO, Unit] =
     fs2.Stream
       .constant(System.currentTimeMillis())
-      .metered[IO](6 milliseconds)
-      .evalTap(startTime =>
-        stateRef.get.flatMap(Renderer.render(writer, startTime, _))
-      )
+      .metered[IO](16 milliseconds)
+      .evalTap(* => stateRef.get.flatMap(Renderer.render(writer, _)))
       .void
 
   private def process(

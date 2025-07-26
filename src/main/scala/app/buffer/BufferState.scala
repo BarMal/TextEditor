@@ -82,7 +82,7 @@ object BufferState {
 
   def empty =
     new BufferState(
-      buffer = Rope(""),
+      buffer = Rope.mobyDick,
       cursorPosition = 0,
       userEffects = List.empty[Effect],
       lineLength = 50,

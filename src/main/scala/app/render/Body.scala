@@ -85,23 +85,37 @@ object Body {
           val isEndOfRow: Boolean =
             col != 0 && Math.floorMod(col, lineLength) == 0
 
-          val selectedFormatting: List[SGR] = if selected.exists(index) then List(SGR.REVERSE) else List.empty[SGR]
+          val selectedFormatting: List[SGR] =
+            if selected.exists(index) then List(SGR.REVERSE)
+            else List.empty[SGR]
+          val (selectStart, selectEnd) = selected.range((0, 0))
+          val _selectedFormatting: List[SGR] =
+            if selectStart <= index && index <= selectEnd then List(SGR.REVERSE)
+            else List.empty[SGR]
 
-          val sgrs: List[SGR] = selectedFormatting ++ formattingMap.getOrElse(index, Set.empty[Formatting]).map {
-            case Bold => SGR.BOLD
-            case Italic => SGR.ITALIC
-            case Underscore => SGR.UNDERLINE
-            case Inverted => SGR.REVERSE
-          }.toList
-
+          val sgrs: List[SGR] = selectedFormatting ++ formattingMap
+            .getOrElse(index, Set.empty[Formatting])
+            .map {
+              case Bold       => SGR.BOLD
+              case Italic     => SGR.ITALIC
+              case Underscore => SGR.UNDERLINE
+              case Inverted   => SGR.REVERSE
+            }
+            .toList
 
           val outputs: List[Output] =
             if !TerminalTextUtils.isControlCharacter(char) then
               List(
                 Output(
-                  textCharacter = new TextCharacter(char, ANSI.BLACK_BRIGHT, ANSI.WHITE, sgrs*),
+                  textCharacter = new TextCharacter(
+                    char,
+                    ANSI.WHITE_BRIGHT,
+                    ANSI.BLACK_BRIGHT,
+                    sgrs*
+                  ),
                   x = col,
-                  y = row
+                  y = row,
+                  mappedIndex = index
                 )
               )
             else List.empty[Output]

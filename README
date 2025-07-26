@@ -5,6 +5,7 @@ In-progress:
 
 TODO: 
 
+- Scrolling
 - Finish rest of input keys mappings
 - Consider using the State monad to handle state
 - Finish implementing behaviours

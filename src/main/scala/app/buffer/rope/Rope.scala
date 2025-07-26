@@ -1,6 +1,7 @@
 package app.buffer.rope
 
 import scala.annotation.tailrec
+import scala.io.Source
 
 trait Rope(using balance: Balance) {
   def weight: Int
@@ -122,11 +123,16 @@ trait Rope(using balance: Balance) {
 
 object Rope {
 
+  def empty(using balance: Balance): Rope = Leaf("")
+
   def apply(in: String)(using balance: Balance): Rope =
     if in.length <= balance.leafChunkSize then Leaf(in)
     else {
       val (left, right) = in.splitAt(Math.floorDiv(in.length, 2))
       Node(Rope(left), Rope(right)).rebalance
     }
+
+  def mobyDick(using balance: Balance): Rope =
+    Rope(Source.fromResource("MobyDick.txt").getLines().mkString("\n"))
 
 }
