@@ -51,30 +51,47 @@ object Main extends IOApp {
   private val bufferStateRef: IO[Ref[IO, BufferState]] =
     Ref.of[IO, BufferState](BufferState.empty)
 
+  private val lastBufferStateHashRef: IO[Ref[IO, Int]] =
+    Ref.of[IO, Int](BufferState.empty.hashCode())
+
   private def in(
       reader: ScreenReader[IO],
-      stateRef: Ref[IO, BufferState]
+      stateRef: Ref[IO, BufferState],
+      lastHashRef: Ref[IO, Int]
   ): fs2.Stream[IO, Unit] =
     reader.readStream
-      .evalTap(keyStroke => stateRef.update(_ ++ keyStroke))
-      .void
+      .evalMap { keyStroke =>
+        for {
+          lastState <- stateRef.getAndUpdate(_ ++ keyStroke)
+          _         <- lastHashRef.update(_ => lastState.hashCode())
+        } yield ()
+      }
 
   private def out(
       writer: ScreenWriter[IO],
-      stateRef: Ref[IO, BufferState]
+      stateRef: Ref[IO, BufferState],
+      lastStateRef: Ref[IO, Int]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream
       .constant(System.currentTimeMillis())
       .metered[IO](16 milliseconds)
-      .evalTap(* => stateRef.get.flatMap(Renderer.render(writer, _)))
-      .void
+      .evalMap(* =>
+        for {
+          state         <- stateRef.get
+          lastStateHash <- lastStateRef.get
+          _ <- IO.unlessA(lastStateHash == state.hashCode())(
+            Renderer.render(writer, state)
+          )
+        } yield ()
+      )
 
   private def process(
       screen: Screen,
-      stateRef: Ref[IO, BufferState]
+      stateRef: Ref[IO, BufferState],
+      lastHashState: Ref[IO, Int]
   ): IO[ExitCode] =
-    out(new ScreenWriter[IO](screen), stateRef)
-      .concurrently(in(new ScreenReader[IO](screen), stateRef))
+    out(new ScreenWriter[IO](screen), stateRef, lastHashState)
+      .concurrently(in(new ScreenReader[IO](screen), stateRef, lastHashState))
       .compile
       .drain
       .as(ExitCode.Success)
@@ -88,7 +105,8 @@ object Main extends IOApp {
     screenRes
       .use { screen =>
         for {
-          state <- bufferStateRef
+          state         <- bufferStateRef
+          lastHashState <- lastBufferStateHashRef
           _ <- Try(screen.startScreen()) match {
             case Failure(exception) =>
               logger.error(exception)("Couldn't start screen") *> IO.raiseError(
@@ -96,7 +114,7 @@ object Main extends IOApp {
               )
             case Success(value) => IO.unit
           }
-          program <- process(screen, state)
+          program <- process(screen, state, lastHashState)
         } yield program
       }
       .handleErrorWith(
