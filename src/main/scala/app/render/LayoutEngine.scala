@@ -18,8 +18,8 @@ object LayoutEngine {
       screenRow: Int,
       positions: Vector[
         LayoutPosition
-      ],                    // Track all positions for cursor lookup
-      outputs: Vector[Output] // Only populated when actually rendering
+      ],
+      outputs: Vector[Output]
   )
 
   private object LayoutState {
@@ -42,12 +42,12 @@ object LayoutEngine {
       formattingMap: Map[Int, Set[Formatting]] = Map.empty
   ): LayoutState = {
 
-    // Always track the position for cursor calculations
-    val newPositions: Vector[LayoutPosition] = state.positions :+ LayoutPosition(
-      state.screenCol,
-      state.screenRow,
-      bufferIndex
-    )
+    val newPositions: Vector[LayoutPosition] =
+      state.positions :+ LayoutPosition(
+        state.screenCol,
+        state.screenRow,
+        bufferIndex
+      )
 
     char match {
       case '\n' =>
@@ -119,43 +119,34 @@ object LayoutEngine {
     }
   }
 
-  def layoutContent(
+  def layout(
       content: String,
       lineLength: Int,
       rowOffset: Int,
       columnOffset: Int,
-      cursorPosition: Int,
       selected: TogglingSet[Int] = TogglingSet.empty[Int],
       formattingMap: Map[Int, Set[Formatting]] = Map.empty
-  ): (Vector[Output], (Int, Int)) = {
-
-    val selectionRange: Option[(Int, Int)] =
-      Option.unless(selected.isEmpty)(selected.range(0, 0))
-
-    val finalState =
-      content.zipWithIndex
-        .foldLeft(LayoutState(columnOffset, rowOffset)) {
-          case (state, (char, index)) =>
-            processCharacter(
-              state,
-              char,
-              index,
-              lineLength,
-              columnOffset,
-              selectionRange,
-              formattingMap
-            )
-        }
-
-    // Find cursor position
-    val cursorPos = if (cursorPosition < finalState.positions.length) {
-      val pos = finalState.positions(cursorPosition)
-      (pos.screenCol, pos.screenRow)
-    } else {
-      // Cursor is at the end
-      (finalState.screenCol, finalState.screenRow)
+  ): LayoutState = content.zipWithIndex
+    .foldLeft(LayoutState(columnOffset, rowOffset)) {
+      case (state, (char, index)) =>
+        processCharacter(
+          state,
+          char,
+          index,
+          lineLength,
+          columnOffset,
+          Option.unless(selected.isEmpty)(selected.range(0, 0)),
+          formattingMap
+        )
     }
 
-    (finalState.outputs, cursorPos)
-  }
+  def cursorPosition(state: LayoutState, cursorPosition: Int): (Int, Int) =
+    Option
+      .when(
+        cursorPosition < state.positions.length
+          && state.positions
+            .isDefinedAt(cursorPosition)
+      )(state.positions(cursorPosition))
+      .map(position => (position.screenCol, position.screenRow))
+      .getOrElse((state.screenCol, state.screenRow))
 }

@@ -30,7 +30,7 @@ object Main extends IOApp {
       Try {
         val term: Terminal = DefaultTerminalFactory()
           .setTerminalEmulatorTitle("Bam")
-          .setInitialTerminalSize(new TerminalSize(75, 50))
+          .setInitialTerminalSize(new TerminalSize(100, 50))
           .createTerminal()
         new TerminalScreen(term)
       } match {

@@ -68,8 +68,12 @@ case class BufferState(
 
 object BufferState {
 
-  given balance: Balance =
-    Balance(weightBalance = 32, heightBalance = 10, leafChunkSize = 32)
+  given Balance =
+    Balance(
+      weightBalance = 64,
+      heightBalance = 8,
+      leafChunkSize = 128
+    )
 
   def empty =
     new BufferState(
