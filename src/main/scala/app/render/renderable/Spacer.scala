@@ -1,3 +1,5 @@
+package app.render.renderable
+
 //package app.render
 //
 //import com.googlecode.lanterna.{TextCharacter, TextColor}

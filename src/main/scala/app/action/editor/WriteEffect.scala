@@ -5,27 +5,19 @@ import app.buffer.{BufferState, TogglingSet, WriteMode}
 sealed trait WriteEffect extends BufferEffect {
 
   protected def write(state: BufferState, in: Char): BufferState =
-    BufferState(
+    state.copy(
       buffer = state.buffer.insert(state.cursorPosition, in),
       cursorPosition = state.cursorPosition + 1,
-      userEffects = this :: state.userEffects,
-      lineLength = state.lineLength,
-      selected = TogglingSet.empty[Int],
-      writeMode = state.writeMode,
-      currentFormatting = state.currentFormatting,
-      formattingMap = state.formattingMap
+      userEffects = this +: state.userEffects,
+      selected = TogglingSet.empty[Int]
     )
 
   protected def overwrite(state: BufferState, in: Char): BufferState =
-    BufferState(
+    state.copy(
       buffer = state.buffer.replace(state.cursorPosition, in),
       cursorPosition = state.cursorPosition + 1,
-      userEffects = this :: state.userEffects,
-      lineLength = state.lineLength,
-      selected = TogglingSet.empty[Int],
-      writeMode = state.writeMode,
-      currentFormatting = state.currentFormatting,
-      formattingMap = state.formattingMap
+      userEffects = this +: state.userEffects,
+      selected = TogglingSet.empty[Int]
     )
 }
 

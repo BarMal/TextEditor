@@ -1,11 +1,39 @@
-package app.render
+package app.render.renderable
 
 import app.buffer
 import app.buffer.Formatting.*
 import app.buffer.rope.Rope
 import app.buffer.{BufferState, Formatting, TogglingSet}
+import app.render.{LayoutEngine, Output}
 import com.googlecode.lanterna.TextColor.ANSI
 import com.googlecode.lanterna.{SGR, TerminalTextUtils, TextCharacter}
+
+object Body {
+
+  def fromState(
+      buffer: Rope,
+      lineLength: Int,
+      selected: TogglingSet[Int],
+      formattingMap: Map[Int, Set[Formatting]],
+      rowOffset: Int,
+      columnOffset: Int
+  ): Vector[Output] = {
+    val content = buffer.collect()
+
+    // Use shared layout engine - only need the outputs, ignore cursor position
+    val (outputs, _) = LayoutEngine.layoutContent(
+      content = content,
+      lineLength = lineLength,
+      rowOffset = rowOffset,
+      columnOffset = columnOffset,
+      cursorPosition = 0, // Not needed for rendering
+      selected = selected,
+      formattingMap = formattingMap
+    )
+
+    outputs
+  }
+}
 
 //
 //import app.buffer.BufferState
@@ -59,78 +87,78 @@ import com.googlecode.lanterna.{SGR, TerminalTextUtils, TextCharacter}
 ////
 ////}
 //
-object Body {
-
-  case class OutputState(col: Int, row: Int, acc: List[Output])
-
-  object OutputState {
-    def apply(x: Int, y: Int): OutputState =
-      OutputState(x, y, List.empty[Output])
-  }
-
-  def fromState(
-      buffer: Rope,
-      lineLength: Int,
-      selected: TogglingSet[Int],
-      formattingMap: Map[Int, Set[Formatting]],
-      rowOffset: Int,
-      columnOffset: Int
-  ): List[Output] =
-    buffer
-      .collect()
-      .zipWithIndex
-      .foldLeft(OutputState(columnOffset, rowOffset)) {
-        case (OutputState(col, row, acc), (char, index)) =>
-
-          val isEndOfRow: Boolean =
-            col != 0 && Math.floorMod(col, lineLength) == 0
-
-          val selectedFormatting: List[SGR] =
-            if selected.exists(index) then List(SGR.REVERSE)
-            else List.empty[SGR]
-          val (selectStart, selectEnd) = selected.range((0, 0))
-          val _selectedFormatting: List[SGR] =
-            if selectStart <= index && index <= selectEnd then List(SGR.REVERSE)
-            else List.empty[SGR]
-
-          val sgrs: List[SGR] = selectedFormatting ++ formattingMap
-            .getOrElse(index, Set.empty[Formatting])
-            .map {
-              case Bold       => SGR.BOLD
-              case Italic     => SGR.ITALIC
-              case Underscore => SGR.UNDERLINE
-              case Inverted   => SGR.REVERSE
-            }
-            .toList
-
-          val outputs: List[Output] =
-            if !TerminalTextUtils.isControlCharacter(char) then
-              List(
-                Output(
-                  textCharacter = new TextCharacter(
-                    char,
-                    ANSI.WHITE_BRIGHT,
-                    ANSI.BLACK_BRIGHT,
-                    sgrs*
-                  ),
-                  x = col,
-                  y = row,
-                  mappedIndex = index
-                )
-              )
-            else List.empty[Output]
-
-          char match {
-            case '\n' => OutputState(columnOffset, row + 1, acc)
-            case '\t' => OutputState(col + 4, row, acc)
-            case '\b' => OutputState(col, row, acc)
-            case _ if isEndOfRow =>
-              OutputState(columnOffset, row + 1, outputs ++ acc)
-            case _ => OutputState(col + 1, row, outputs ++ acc)
-          }
-      }
-      .acc
-
+//object Body {
+//
+//  case class OutputState(col: Int, row: Int, acc: List[Output])
+//
+//  object OutputState {
+//    def apply(x: Int, y: Int): OutputState =
+//      OutputState(x, y, List.empty[Output])
+//  }
+//
+//  def fromState(
+//      buffer: Rope,
+//      lineLength: Int,
+//      selected: TogglingSet[Int],
+//      formattingMap: Map[Int, Set[Formatting]],
+//      rowOffset: Int,
+//      columnOffset: Int
+//  ): List[Output] =
+//    buffer
+//      .collect()
+//      .zipWithIndex
+//      .foldLeft(OutputState(columnOffset, rowOffset)) {
+//        case (OutputState(col, row, acc), (char, index)) =>
+//
+//          val isEndOfRow: Boolean =
+//            col != 0 && Math.floorMod(col, lineLength) == 0
+//
+//          val selectedFormatting: List[SGR] =
+//            if selected.exists(index) then List(SGR.REVERSE)
+//            else List.empty[SGR]
+//          val (selectStart, selectEnd) = selected.range((0, 0))
+//          val _selectedFormatting: List[SGR] =
+//            if selectStart <= index && index <= selectEnd then List(SGR.REVERSE)
+//            else List.empty[SGR]
+//
+//          val sgrs: List[SGR] = selectedFormatting ++ formattingMap
+//            .getOrElse(index, Set.empty[Formatting])
+//            .map {
+//              case Bold       => SGR.BOLD
+//              case Italic     => SGR.ITALIC
+//              case Underscore => SGR.UNDERLINE
+//              case Inverted   => SGR.REVERSE
+//            }
+//            .toList
+//
+//          val outputs: List[Output] =
+//            if !TerminalTextUtils.isControlCharacter(char) then
+//              List(
+//                Output(
+//                  textCharacter = new TextCharacter(
+//                    char,
+//                    ANSI.WHITE_BRIGHT,
+//                    ANSI.BLACK_BRIGHT,
+//                    sgrs*
+//                  ),
+//                  x = col,
+//                  y = row,
+//                  mappedIndex = index
+//                )
+//              )
+//            else List.empty[Output]
+//
+//          char match {
+//            case '\n' => OutputState(columnOffset, row + 1, acc)
+//            case '\t' => OutputState(col + 4, row, acc)
+//            case '\b' => OutputState(col, row, acc)
+//            case _ if isEndOfRow =>
+//              OutputState(columnOffset, row + 1, outputs ++ acc)
+//            case _ => OutputState(col + 1, row, outputs ++ acc)
+//          }
+//      }
+//      .acc
+//}
 //  def fromState(
 //      buffer: Rope,
 //      lineLength: Int,
@@ -159,7 +187,6 @@ object Body {
 //      }
 //      .toList
 
-}
 //  def foo(
 //      state: BufferState,
 //      isCursorVisible: Boolean,

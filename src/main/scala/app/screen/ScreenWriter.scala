@@ -25,7 +25,7 @@ class ScreenWriter[F[_]: Async](screen: Screen) {
   def updateCursorPosition(x: Int, y: Int): F[Unit] =
     Async[F].blocking(screen.setCursorPosition(new TerminalPosition(x, y)))
 
-  def print(elements: List[Output]): F[Unit] =
+  def print(elements: Vector[Output]): F[Unit] =
     Async[F].blocking(screen.clear()) *>
       elements
         .traverse(elem =>

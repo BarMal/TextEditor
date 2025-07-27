@@ -1,6 +1,7 @@
 package app.render
 
 import app.buffer.BufferState
+import app.render.renderable.{Body, Header}
 import app.screen.ScreenWriter
 import cats.effect.kernel.Async
 import cats.implicits.catsSyntaxApplyOps
@@ -23,19 +24,26 @@ object Renderer {
       state.lineLength,
       state.userEffects
     )
-    val body = Body.fromState(
-      state.buffer,
-      state.lineLength,
-      state.selected,
-      state.formattingMap,
-      bodyRowOffset,
-      bodyColumnOffset
-    )
-    val (x, y) = body
-      .map(output => output.mappedIndex + 1 -> (output.x + 1, output.y))
-      .toMap
-      .getOrElse(state.cursorPosition, (bodyColumnOffset, bodyRowOffset))
-    writer.print(header ++ body) *> writer.updateCursorPosition(x, y)
-  }
 
+    val (body, (cursorX, cursorY)) = LayoutEngine.layoutContent(
+      content = state.buffer
+        .slice(
+          state.cursorPosition - state.viewportSize / 2,
+          state.cursorPosition + state.viewportSize / 2
+        )
+        .collect(),
+      lineLength = state.lineLength,
+      rowOffset = bodyRowOffset,
+      columnOffset = bodyColumnOffset,
+      cursorPosition = state.cursorPosition,
+      selected = state.selected,
+      formattingMap = state.formattingMap
+    )
+
+    writer
+      .print(header.appendedAll(body)) *> writer.updateCursorPosition(
+      cursorX,
+      cursorY
+    )
+  }
 }

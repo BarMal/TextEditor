@@ -11,8 +11,8 @@ object Effect {
 
   case class Unexpected(input: UserInput*) extends Effect
 
-  given effectListShowInstance: Show[List[Effect]] =
-    (t: List[Effect]) => t.take(5).mkString(", ")
+  given effectListShowInstance: Show[Vector[Effect]] =
+    (t: Vector[Effect]) => t.take(5).mkString(", ")
 }
 
 

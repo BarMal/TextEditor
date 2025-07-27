@@ -48,12 +48,13 @@ object WriteMode {
 case class BufferState(
     buffer: Rope,
     cursorPosition: Int,
-    userEffects: List[Effect],
+    userEffects: Vector[Effect],
     lineLength: Int,
     selected: TogglingSet[Int],
     writeMode: WriteMode,
     currentFormatting: Set[Formatting],
-    formattingMap: Map[Int, Set[Formatting]]
+    formattingMap: Map[Int, Set[Formatting]],
+    viewportSize: Int
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -62,17 +63,7 @@ case class BufferState(
       case effect: DeleteEffect      => effect.effect(this)
       case effect: NavigateEffect    => effect.effect(this)
       case effect: StateChangeEffect => effect.effect(this)
-      case others =>
-        BufferState(
-          buffer = buffer,
-          cursorPosition = cursorPosition,
-          userEffects = others :: userEffects,
-          lineLength = lineLength,
-          selected = selected,
-          writeMode = Write,
-          currentFormatting = currentFormatting,
-          formattingMap = formattingMap
-        )
+      case others => this.copy(writeMode = Write, userEffects = others +: userEffects)
 }
 
 object BufferState {
@@ -84,12 +75,13 @@ object BufferState {
     new BufferState(
       buffer = Rope.mobyDick,
       cursorPosition = 0,
-      userEffects = List.empty[Effect],
+      userEffects = Vector.empty[Effect],
       lineLength = 50,
       selected = TogglingSet.empty[Int],
       writeMode = Write,
       currentFormatting = Set.empty[Formatting],
-      formattingMap = Map.empty[Int, Set[Formatting]]
+      formattingMap = Map.empty[Int, Set[Formatting]],
+      viewportSize = 4096
     )
 
 }

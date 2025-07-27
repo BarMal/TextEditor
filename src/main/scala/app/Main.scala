@@ -51,26 +51,26 @@ object Main extends IOApp {
   private val bufferStateRef: IO[Ref[IO, BufferState]] =
     Ref.of[IO, BufferState](BufferState.empty)
 
-  private val lastBufferStateHashRef: IO[Ref[IO, Int]] =
-    Ref.of[IO, Int](BufferState.empty.hashCode())
+  private val lastBufferStateHashRef: IO[Ref[IO, Option[Int]]] =
+    Ref.of[IO, Option[Int]](None)
 
   private def in(
       reader: ScreenReader[IO],
       stateRef: Ref[IO, BufferState],
-      lastHashRef: Ref[IO, Int]
+      lastHashRef: Ref[IO, Option[Int]]
   ): fs2.Stream[IO, Unit] =
     reader.readStream
       .evalMap { keyStroke =>
         for {
           lastState <- stateRef.getAndUpdate(_ ++ keyStroke)
-          _         <- lastHashRef.update(_ => lastState.hashCode())
+          _         <- lastHashRef.update(_ => Some(lastState.hashCode()))
         } yield ()
       }
 
   private def out(
       writer: ScreenWriter[IO],
       stateRef: Ref[IO, BufferState],
-      lastStateRef: Ref[IO, Int]
+      lastStateRef: Ref[IO, Option[Int]]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream
       .constant(System.currentTimeMillis())
@@ -79,7 +79,7 @@ object Main extends IOApp {
         for {
           state         <- stateRef.get
           lastStateHash <- lastStateRef.get
-          _ <- IO.unlessA(lastStateHash == state.hashCode())(
+          _ <- IO.unlessA(lastStateHash.contains(state.hashCode()))(
             Renderer.render(writer, state)
           )
         } yield ()
@@ -88,7 +88,7 @@ object Main extends IOApp {
   private def process(
       screen: Screen,
       stateRef: Ref[IO, BufferState],
-      lastHashState: Ref[IO, Int]
+      lastHashState: Ref[IO, Option[Int]]
   ): IO[ExitCode] =
     out(new ScreenWriter[IO](screen), stateRef, lastHashState)
       .concurrently(in(new ScreenReader[IO](screen), stateRef, lastHashState))
@@ -109,10 +109,9 @@ object Main extends IOApp {
           lastHashState <- lastBufferStateHashRef
           _ <- Try(screen.startScreen()) match {
             case Failure(exception) =>
-              logger.error(exception)("Couldn't start screen") *> IO.raiseError(
-                exception
-              )
-            case Success(value) => IO.unit
+              logger.error(exception)("Couldn't start screen")
+                *> IO.raiseError(exception)
+            case Success(_) => IO.unit
           }
           program <- process(screen, state, lastHashState)
         } yield program

@@ -13,7 +13,7 @@ import com.googlecode.lanterna.input.{KeyStroke, KeyType}
 case class UserInput(
     character: Option[Char],
     keyType: KeyType,
-    modifiers: List[Modifier],
+    modifiers: Vector[Modifier],
     time: Long
 )
 
@@ -80,8 +80,8 @@ enum Modifier:
   case Shift
 
 object Modifier {
-  def apply(keyStroke: KeyStroke): List[Modifier] =
-    List(
+  def apply(keyStroke: KeyStroke): Vector[Modifier] =
+    Vector(
       Option.when(keyStroke.isCtrlDown)(Modifier.Control),
       Option.when(keyStroke.isAltDown)(Modifier.Alt),
       Option.when(keyStroke.isShiftDown)(Modifier.Shift)

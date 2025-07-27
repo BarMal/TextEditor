@@ -1,10 +1,11 @@
-package app.render
+package app.render.renderable
 
 import app.action.Effect
-import app.buffer.rope.Rope
 import app.buffer.TogglingSet
-import com.googlecode.lanterna.{SGR, TextCharacter}
+import app.buffer.rope.Rope
+import app.render.Output
 import com.googlecode.lanterna.TextColor.ANSI
+import com.googlecode.lanterna.{SGR, TextCharacter}
 
 object Header {
 
@@ -13,8 +14,8 @@ object Header {
       cursorPosition: Int,
       selected: TogglingSet[Int],
       lineLength: Int,
-      effects: List[Effect]
-  ): List[Output] = {
+      effects: Vector[Effect]
+  ): Vector[Output] = {
     val cursorPositionElement = Element.fromString(
       s"""CursorPosition: ${Math.floorDiv(cursorPosition, lineLength)}, ${Math
           .floorMod(cursorPosition, lineLength)}""",
@@ -46,12 +47,12 @@ object Header {
       ANSI.WHITE
     )
 
-    List(
+    Vector(
       selectedRangeElement,
       lastEffectElement,
       bufferSizeElement,
       cursorPositionElement
-    ).foldLeft(List.empty[Output])((elem, acc) =>
+    ).foldLeft(Vector.empty[Output])((elem, acc) =>
       acc ++ elem.map(o =>
         o.copy(
           x = o.x + Math.floorMod(acc.length, lineLength),

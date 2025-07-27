@@ -1,7 +1,8 @@
-package app.render
+package app.render.renderable
 
-import com.googlecode.lanterna.{SGR, TextCharacter}
+import app.render.Output
 import com.googlecode.lanterna.TextColor.ANSI
+import com.googlecode.lanterna.{SGR, TextCharacter}
 
 object Element {
 
@@ -11,14 +12,15 @@ object Element {
       foregroundColour: ANSI,
       background: ANSI,
       sgr: List[SGR] = List.empty[SGR]
-  ): List[Output] =
+  ): Vector[Output] =
     in.zipWithIndex.map { case (c, i) =>
       Output(
-        textCharacter = new TextCharacter(c, foregroundColour, background, sgr*),
+        textCharacter =
+          new TextCharacter(c, foregroundColour, background, sgr*),
         x = Math.floorMod(i, lineLength),
         y = Math.floorDiv(i, lineLength),
         mappedIndex = i
       )
-    }.toList
+    }.toVector
 
 }
