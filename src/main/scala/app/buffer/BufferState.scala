@@ -1,17 +1,11 @@
 package app.buffer
 
-import app.UserInput.flatten
-import WriteMode.Write
-import app.action.Effect
-import app.action.editor.{
-  DeleteEffect,
-  NavigateEffect,
-  StateChangeEffect,
-  WriteEffect
-}
-import app.buffer.rope.{Balance, Rope}
 import app.*
-import com.googlecode.lanterna.TextColor.ANSI
+import app.UserInput.flatten
+import app.action.Effect
+import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
+import app.buffer.WriteMode.Write
+import app.buffer.rope.{Rope, Balance}
 import com.googlecode.lanterna.input.KeyStroke
 
 //case class State(
@@ -57,13 +51,17 @@ case class BufferState(
     viewportSize: Int
 ) extends Focusable[BufferState] {
 
+  def withViewportSize(size: Int): BufferState =
+    this.copy(viewportSize = size, lineLength = size / 2)
+
   override def ++(in: KeyStroke): BufferState =
     UserInput.keyStrokeToEffect(in.flatten) match
       case effect: WriteEffect       => effect.effect(this)
       case effect: DeleteEffect      => effect.effect(this)
       case effect: NavigateEffect    => effect.effect(this)
       case effect: StateChangeEffect => effect.effect(this)
-      case others => this.copy(writeMode = Write, userEffects = others +: userEffects)
+      case others =>
+        this.copy(writeMode = Write, userEffects = others +: userEffects)
 }
 
 object BufferState {
@@ -87,5 +85,19 @@ object BufferState {
       formattingMap = Map.empty[Int, Set[Formatting]],
       viewportSize = 4096
     )
-
 }
+
+extension (state: BufferState)
+  def withContent(newContent: String)(using balance: Balance): BufferState = {
+    val oldContent = state.buffer.collect()
+    val newRope = Rope(newContent)
+    val minLen = math.min(oldContent.length, newContent.length)
+    val firstDiff = (0 until minLen).find(i => oldContent.charAt(i) != newContent.charAt(i)).getOrElse(minLen)
+    val newCursor = math.min(firstDiff + (newContent.length - oldContent.length).max(0), newRope.weight)
+    state.copy(
+      buffer = newRope,
+      cursorPosition = newCursor,
+      selected = app.buffer.TogglingSet.empty,
+      formattingMap = Map.empty
+    )
+  }
