@@ -22,18 +22,6 @@ class EditorTextBox[F[_]: Sync](
     _ <- updateSize(size)
   } yield ()
 
-  def syncFromBuffer()(using Balance): F[Unit] = for {
-    bufferContent <- bufferAlg.getContent
-    uiContent <- editorUI.getText
-    _ <- if (bufferContent != uiContent) {
-      for {
-        size <- editorUI.getSize
-        _ <- editorUI.setText(bufferContent)
-        _ <- editorUI.setSize(size)  // Maintain size during update
-      } yield ()
-    } else Sync[F].unit
-  } yield ()
-
   def updateSize(size: TerminalSize): F[Unit] = {
     val viewportSize = math.max(MIN_VIEWPORT_SIZE, size.getColumns * (size.getRows - 3)) // Account for header and margins
     for {

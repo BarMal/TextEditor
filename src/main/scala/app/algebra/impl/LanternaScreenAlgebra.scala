@@ -13,12 +13,4 @@ class LanternaScreenAlgebra[F[_]: Sync](screen: Screen) extends ScreenAlgebra[F]
       Sync[F].delay(Option(screen.pollInput()))
     ).collect { case Some(key) => key }
 
-  def startScreen: F[Unit] =
-    Sync[F].delay(screen.startScreen())
-
-  def stopScreen: F[Unit] =
-    Sync[F].delay(screen.stopScreen())
-
-  def updateScreen: F[Unit] =
-    Sync[F].delay(screen.refresh())
 }

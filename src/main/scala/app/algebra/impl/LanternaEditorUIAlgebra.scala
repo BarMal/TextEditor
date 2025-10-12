@@ -10,15 +10,10 @@ class LanternaEditorUIAlgebra[F[_]: Sync](textBox: TextBox) extends EditorUIAlge
   def setText(content: String): F[Unit] =
     Sync[F].delay(textBox.setText(content))
 
-  def getText: F[String] =
-    Sync[F].delay(textBox.getText)
-
   def setSize(size: TerminalSize): F[Unit] =
     Sync[F].delay(textBox.setPreferredSize(size))
 
   def getSize: F[TerminalSize] =
     Sync[F].delay(textBox.getSize)
 
-  def refresh: F[Unit] =
-    Sync[F].delay(textBox.invalidate())
 }

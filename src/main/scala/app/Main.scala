@@ -4,7 +4,7 @@ import app.algebra.*
 import app.algebra.impl.*
 import app.buffer.BufferState
 import app.buffer.BufferState.given
-import app.config.AppConfig
+import app.config.{AppConfig, Title, WindowConfig}
 import app.gui.{EditorTextBox, EditorWindowListener, WindowEventHandler}
 import app.screen.ScreenWriter
 import cats.data.Kleisli
@@ -19,83 +19,73 @@ import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import cats.effect.unsafe.implicits.global
+import com.googlecode.lanterna.input.KeyStroke
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import scala.util.Try
 
 object Main extends IOApp {
+
   private val logger: SelfAwareStructuredLogger[IO] =
     Slf4jFactory.create[IO].getLogger
-
-  private val configAlg = new PureConfigAlgebra[IO]
 
   private def createScreen[F[_]: Sync](
       configAlg: ConfigAlgebra[IO]
   ): Resource[IO, Screen] =
     Resource.make {
       for {
-        title       <- configAlg.getEditorTitle
-        initialSize <- configAlg.getInitialSize
+        config <- configAlg.loadConfig
         screen <- Sync[IO].delay {
-          val factory =
-            new DefaultTerminalFactory().setTerminalEmulatorTitle(title)
-          initialSize.foreach { case (w, h) =>
-            factory.setInitialTerminalSize(new TerminalSize(w, h))
-          }
+          val factory: DefaultTerminalFactory =
+            new DefaultTerminalFactory().setTerminalEmulatorTitle(
+              config.title.getOrElse(Title.default).toString
+            )
+          val WindowConfig(width, height) =
+            config.initialSize.getOrElse(WindowConfig.default)
+          factory.setInitialTerminalSize(new TerminalSize(width, height))
           val term = factory.createTerminal()
           new TerminalScreen(term)
         }
       } yield screen
     } { screen =>
-      Sync[IO].delay(screen.stopScreen())
+      Sync[IO].delay(screen.stopScreen(true))
     }
 
-  private val bufferStateRef: IO[Ref[IO, BufferState]] =
-    Ref.of[IO, BufferState](BufferState.empty)
-
-  private val lastBufferStateHashRef: IO[Ref[IO, Option[Int]]] =
-    Ref.of[IO, Option[Int]](None)
-
   private def in(
-      screenAlg: ScreenAlgebra[IO],
-      stateRef: Ref[IO, BufferState],
-      lastHashRef: Ref[IO, Option[Int]]
+      screen: Screen,
+      stateRef: Ref[IO, BufferState]
   ): fs2.Stream[IO, Unit] =
-    screenAlg.readInput
-      .evalMap { keyStroke =>
-        for {
-          lastState <- stateRef.getAndUpdate(_ ++ keyStroke)
-          _         <- lastHashRef.update(_ => Some(lastState.hashCode()))
-        } yield ()
-      }
+    fs2.Stream
+      .repeatEval(
+        IO.fromTry(Try(screen.pollInput()))
+          .map(Option(_))
+          .handleErrorWith(err => logger.error(err)("Input failure").as(None))
+      )
+      .collect { case Some(key) => key }
+      .evalMap(keyStroke =>
+        stateRef
+          .getAndUpdate(_ ++ keyStroke)
+          .void
+      )
 
   private def out(
       renderAlg: RenderAlgebra[IO],
-      stateRef: Ref[IO, BufferState],
-      lastStateRef: Ref[IO, Option[Int]]
+      stateRef: Ref[IO, BufferState]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream
       .constant(System.currentTimeMillis())
       .metered[IO](16 milliseconds)
-      .evalMap(_ =>
-        for {
-          state         <- stateRef.get
-          lastStateHash <- lastStateRef.get
-          _ <- IO.unlessA(lastStateHash.contains(state.hashCode()))(
-            renderAlg.render(state)
-          )
-        } yield ()
-      )
+      .evalMap(_ => stateRef.get.flatMap(renderAlg.render))
 
   private def process(
-      screenAlg: ScreenAlgebra[IO],
+      screen: Screen,
       renderAlg: RenderAlgebra[IO],
-      stateRef: Ref[IO, BufferState],
-      lastHashState: Ref[IO, Option[Int]]
+      stateRef: Ref[IO, BufferState]
   ): IO[ExitCode] =
-    out(renderAlg, stateRef, lastHashState)
-      .concurrently(in(screenAlg, stateRef, lastHashState))
+    out(renderAlg, stateRef)
+      .concurrently(in(screen, stateRef))
       .compile
       .drain
       .as(ExitCode.Success)
@@ -146,7 +136,8 @@ object Main extends IOApp {
         new AtomicReference[TerminalSize](new TerminalSize(100, 30))
 
       // Create layout algebra
-      val layoutAlg: LanternaLayoutAlgebra[IO] = new LanternaLayoutAlgebra[IO](panel, filePane, editor, lastKnownSize)
+      val layoutAlg: LanternaLayoutAlgebra[IO] =
+        new LanternaLayoutAlgebra[IO](panel, filePane, editor, lastKnownSize)
 
       // Set window hints
       import scala.jdk.CollectionConverters.*
@@ -160,78 +151,16 @@ object Main extends IOApp {
       (window, eventHandler)
     }
 
-  private val initEditor: Kleisli[
-    IO,
-    (Ref[IO, BufferState], WindowEventAlgebra[IO]),
-    (EditorTextBox[IO], BasicWindow)
-  ] =
-    Kleisli { case (bufferRef, eventAlg) =>
-      for {
-        // Create editor and components
-        components <- createEditor[IO](bufferRef)
-        (editor, panel, filePane) = components
-
-        // Initialize editor
-        _ <- editor.initialize()
-
-        // Setup window
-        (window, handler) <- setupWindowAndHandlers[IO](
-          editor,
-          panel,
-          filePane,
-          eventAlg,
-          bufferRef
-        )
-      } yield (editor, window)
-    }
-
-  private val startSyncFiber
-      : Kleisli[IO, EditorTextBox[IO], Fiber[IO, Throwable, Unit]] =
-    Kleisli { editor =>
-      fs2.Stream
-        .awakeEvery[IO](
-          100.milliseconds
-        ) // Increased sync frequency for better responsiveness
-        .evalMap(_ =>
-          editor
-            .syncFromBuffer()
-            .handleErrorWith(e =>
-              logger.error(e)("Error during buffer sync").as(())
-            )
-        )
-        .compile
-        .drain
-        .start
-    }
-
-  private val runGui: Kleisli[IO, (GUIAlgebra[IO], BasicWindow), Unit] =
-    Kleisli { case (guiAlg, window) =>
-      for {
-        _ <- guiAlg.invalidateComponent(window)
-        _ <- guiAlg.updateScreen
-        _ <- guiAlg.addWindow(window)
-      } yield ()
-    }
-
   override def run(args: List[String]): IO[ExitCode] =
-    createScreen[IO](configAlg)
+    createScreen[IO](new PureConfigAlgebra[IO])
       .use { screen =>
-        given runtime: IORuntime =
-          runtime // Make runtime available for setupWindow
-
         for {
-          // Create event handling infrastructure
-          eventQueue <- Queue.unbounded[IO, WindowEvent]
-          eventAlg = new QueueWindowEventAlgebra[IO](eventQueue)
-
-          _ <- IO.delay(screen.startScreen())
-          screenAlg = new LanternaScreenAlgebra[IO](screen)
+          _ <- logger.info("Starting BAM text editor")
           textGUI   = new MultiWindowTextGUI(screen)
-          guiAlg    = new LanternaGUIAlgebra[IO](textGUI)
-          bufferRef <- Ref[IO].of(BufferState.empty)
-          hashRef   <- Ref[IO].of(Option.empty[Int])
           writer    = new ScreenWriter[IO](screen)
           renderAlg = new LanternaRenderAlgebra[IO](writer)
+
+          bufferRef <- Ref[IO].of(BufferState.empty)
 
           // Create editor components
           components <- createEditor[IO](bufferRef)
@@ -239,24 +168,24 @@ object Main extends IOApp {
           _ <- editor.initialize()
 
           // Setup window and event handling
-          setup <- setupWindowAndHandlers[IO](
+          (window, eventHandler) <- setupWindowAndHandlers[IO](
             editor,
             panel,
             filePane,
-            eventAlg,
             bufferRef
           )
-          (window, eventHandler) = setup
 
-          // Start all concurrent processes
-          syncFiber  <- startSyncFiber.run(editor)
+          _          <- screen.startScreen()
           eventFiber <- eventHandler.handleEvents.compile.drain.start
 
-          _        <- runGui.run((guiAlg, window))
-          exitCode <- process(screenAlg, renderAlg, bufferRef, hashRef)
+          _ <- {
+            window.getComponent.invalidate()
+            textGUI.updateScreen()
+            textGUI.addWindowAndWait(window)
+          }.pure[F]
 
-          // Cleanup
-          _ <- syncFiber.cancel
+          exitCode <- process(screen, renderAlg, bufferRef)
+
           _ <- eventFiber.cancel
         } yield exitCode
       }
@@ -265,6 +194,11 @@ object Main extends IOApp {
       }
 }
 
-extension [F[_]: Async](stream: fs2.Stream[F, ?]) {
-  def void: fs2.Stream[F, Unit] = stream.as(())
+extension [T, F[_]: Sync](underlying: T) {
+  def withF(setters: (T => ?)*): F[T] =
+    Sync[F].delay(setters.toList.map(set => set(underlying))).as(underlying)
 }
+
+//extension [F[_]: Async](stream: fs2.Stream[F, ?]) {
+//  def void: fs2.Stream[F, Unit] = stream.as(())
+//}

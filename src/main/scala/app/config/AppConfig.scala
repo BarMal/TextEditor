@@ -1,15 +1,23 @@
 package app.config
 
 import pureconfig.ConfigReader
-import pureconfig.generic.derivation.default.*
 
 case class WindowConfig(
-  width: Int = 120,
-  height: Int = 40
+    width: Int,
+    height: Int
 ) derives ConfigReader
 
+object WindowConfig {
+  val default: WindowConfig = WindowConfig(120, 40)
+}
+
 case class AppConfig(
-  filePath: String,
-  title: Option[String] = None,
-  initialSize: Option[WindowConfig] = None
+    filePath: String,
+    title: Option[Title] = None,
+    initialSize: Option[WindowConfig] = None
 ) derives ConfigReader
+
+opaque type Title = String
+object Title {
+  val default: Title = "BAM Editor"
+}

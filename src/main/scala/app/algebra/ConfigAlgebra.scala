@@ -8,6 +8,4 @@ import cats.MonadError
  */
 trait ConfigAlgebra[F[_]] {
   def loadConfig: F[AppConfig]
-  def getEditorTitle: F[String]
-  def getInitialSize: F[Option[(Int, Int)]]
 }
