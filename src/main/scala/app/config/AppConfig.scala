@@ -12,12 +12,10 @@ object WindowConfig {
 }
 
 case class AppConfig(
-    filePath: String,
-    title: Option[Title] = None,
+    title: Option[String] = None,
     initialSize: Option[WindowConfig] = None
 ) derives ConfigReader
 
-opaque type Title = String
 object Title {
-  val default: Title = "BAM Editor"
+  val default: String = "BAM Editor"
 }
