@@ -2,6 +2,7 @@ package app
 
 import app.buffer.BufferState
 import app.config.{AppConfig, WindowConfig}
+import app.gui.RopeTextBox
 import cats.effect.*
 import cats.syntax.all.*
 import com.googlecode.lanterna.TerminalSize
@@ -32,7 +33,7 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import pureconfig.ConfigSource
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.Try
 import scala.jdk.CollectionConverters.*
 import scala.language.reflectiveCalls
@@ -88,9 +89,10 @@ object Main extends IOApp {
           .map(Option(_))
           .handleErrorWith(err => logger.error(err)("Input failure").as(None))
       )
-      .evalTap(_.fold(logger.error("None keystroke registered"))(
-        keyStroke => logger.info(s"KeyStroke: $keyStroke")
-      )
+      .evalTap(
+        _.fold(logger.error("None keystroke registered"))(keyStroke =>
+          logger.info(s"KeyStroke: $keyStroke")
+        )
       )
       .collect { case Some(key) => key }
       .evalMap(keyStroke => stateRef.update(_ ++ keyStroke))
@@ -110,6 +112,11 @@ object Main extends IOApp {
         } yield ()
       )
 
+  private def blinkStream(interval: FiniteDuration): fs2.Stream[IO, Unit] =
+    fs2.Stream
+      .fixedRate[IO](interval)
+      .evalTap(_ => logger.info("Blink"))
+
   override def run(args: List[String]): IO[ExitCode] =
     (for {
       config <- loadConfig
@@ -125,7 +132,6 @@ object Main extends IOApp {
           _ = mainWindow.setHints(
             List(Window.Hint.CENTERED, Window.Hint.FIT_TERMINAL_WINDOW).asJava
           )
-//          bufferTextBox    = new TextBox("Hello world")
           bufferLabel      = new Label("Hello world")
           sidePanelTextBox = new TextBox("Goodbye universe")
           mainPanel        = new Panel(layoutManager)
@@ -136,6 +142,7 @@ object Main extends IOApp {
 
           exitCode <- outputStream(bufferLabel, gui, bufferState)
             .concurrently(inputStream(screen, bufferState))
+            .concurrently(blinkStream(500.milliseconds))
             .compile
             .drain
             .as(ExitCode.Success)

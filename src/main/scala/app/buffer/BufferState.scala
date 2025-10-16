@@ -51,9 +51,6 @@ case class BufferState(
     viewportSize: Int
 ) extends Focusable[BufferState] {
 
-  def withViewportSize(size: Int): BufferState =
-    this.copy(viewportSize = size, lineLength = size / 2)
-
   override def ++(in: KeyStroke): BufferState =
     UserInput.keyStrokeToEffect(in.flatten) match
       case effect: WriteEffect       => effect.effect(this)
@@ -87,17 +84,3 @@ object BufferState {
     )
 }
 
-extension (state: BufferState)
-  def withContent(newContent: String)(using balance: Balance): BufferState = {
-    val oldContent = state.buffer.collect()
-    val newRope = Rope(newContent)
-    val minLen = math.min(oldContent.length, newContent.length)
-    val firstDiff = (0 until minLen).find(i => oldContent.charAt(i) != newContent.charAt(i)).getOrElse(minLen)
-    val newCursor = math.min(firstDiff + (newContent.length - oldContent.length).max(0), newRope.weight)
-    state.copy(
-      buffer = newRope,
-      cursorPosition = newCursor,
-      selected = app.buffer.TogglingSet.empty,
-      formattingMap = Map.empty
-    )
-  }

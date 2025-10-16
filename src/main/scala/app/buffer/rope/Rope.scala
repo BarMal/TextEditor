@@ -26,6 +26,9 @@ trait Rope(using balance: Balance) {
         (post :: (Leaf(char.toString) :: pre)).rebalance
       case None => this
 
+  def delete(startIndex: Int, endIndex: Int): Rope =
+    deleteRight(startIndex, endIndex - startIndex)
+
   def deleteLeft(start: Int, count: Int): Rope =
     if count == 0 then this
     else if count < 0 then deleteRight(start, Math.abs(count))
