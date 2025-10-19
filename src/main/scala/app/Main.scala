@@ -82,27 +82,27 @@ object Main extends IOApp {
       IO.delay(screen.stopScreen())
     }
 
-  private def inputStream(
-      screen: Screen,
-      bufferComponent: BufferComponent,
-      stateRef: Ref[IO, BufferState]
-  ): fs2.Stream[IO, Unit] =
-    fs2.Stream
-      .repeatEval(
-        IO.fromTry(Try(screen.pollInput()))
-          .map(Option(_))
-          .handleErrorWith(err => logger.error(err)("Input failure").as(None))
-      )
-      .evalTap(
-        _.fold(IO.unit)(keyStroke =>
-          logger
-            .info(s"KeyStroke: $keyStroke")
-            .as(bufferComponent.handleKeyStroke(keyStroke))
-            .void
-        )
-      )
-      .collect { case Some(key) => key }
-      .evalMap(keyStroke => stateRef.update(_ ++ keyStroke))
+//  private def inputStream(
+//      screen: Screen,
+//      bufferComponent: BufferComponent,
+//      stateRef: Ref[IO, BufferState]
+//  ): fs2.Stream[IO, Unit] =
+//    fs2.Stream
+//      .repeatEval(
+//        IO.fromTry(Try(screen.pollInput()))
+//          .map(Option(_))
+//          .handleErrorWith(err => logger.error(err)("Input failure").as(None))
+//      )
+//      .evalTap(
+//        _.fold(IO.unit)(keyStroke =>
+//          logger
+//            .info(s"KeyStroke: $keyStroke")
+//            .as(bufferComponent.handleKeyStroke(keyStroke))
+//            .void
+//        )
+//      )
+//      .collect { case Some(key) => key }
+//      .evalMap(keyStroke => stateRef.update(_ ++ keyStroke))
 
   private def outputStream(
       gui: MultiWindowTextGUI,
@@ -137,17 +137,17 @@ object Main extends IOApp {
             List(Window.Hint.CENTERED, Window.Hint.FIT_TERMINAL_WINDOW).asJava
           )
           bufferComponent = new BufferComponent(bufferState)
+          _ = bufferComponent.takeFocus()
 //          sidePanelTextBox = new TextBox("Goodbye universe")
           mainPanel = new Panel(layoutManager)
 //          _                = mainPanel.addComponent(0, sidePanelTextBox)
           _ = mainPanel.addComponent(1, bufferComponent)
           _ = mainWindow.setComponent(mainPanel)
-          _ = gui.addWindow(mainWindow)
+          _ = gui.addWindowAndWait(mainWindow)
           _ = gui.setActiveWindow(mainWindow)
           exitCode <- outputStream(gui, bufferState)
-            .concurrently(inputStream(screen, bufferComponent, bufferState))
-            .compile
-            .drain
+//            .concurrently(inputStream(screen, bufferComponent, bufferState))
+            .compile.drain
             .as(ExitCode.Success)
             .handleErrorWith(err =>
               logger.error(err)("Error in main loop").as(ExitCode.Error)
