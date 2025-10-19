@@ -2,8 +2,9 @@ package app
 
 import app.buffer.BufferState
 import app.config.{AppConfig, WindowConfig}
-import app.gui.RopeTextBox
+import app.gui.{BufferComponent, RopeTextBox}
 import cats.effect.*
+import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
 import com.googlecode.lanterna.TerminalSize
 import com.googlecode.lanterna.graphics.Theme
@@ -37,6 +38,8 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.Try
 import scala.jdk.CollectionConverters.*
 import scala.language.reflectiveCalls
+
+import cats.effect.unsafe.implicits.global
 
 object Main extends IOApp {
 
@@ -81,6 +84,7 @@ object Main extends IOApp {
 
   private def inputStream(
       screen: Screen,
+      bufferComponent: BufferComponent,
       stateRef: Ref[IO, BufferState]
   ): fs2.Stream[IO, Unit] =
     fs2.Stream
@@ -90,15 +94,17 @@ object Main extends IOApp {
           .handleErrorWith(err => logger.error(err)("Input failure").as(None))
       )
       .evalTap(
-        _.fold(logger.error("None keystroke registered"))(keyStroke =>
-          logger.info(s"KeyStroke: $keyStroke")
+        _.fold(IO.unit)(keyStroke =>
+          logger
+            .info(s"KeyStroke: $keyStroke")
+            .as(bufferComponent.handleKeyStroke(keyStroke))
+            .void
         )
       )
       .collect { case Some(key) => key }
       .evalMap(keyStroke => stateRef.update(_ ++ keyStroke))
 
   private def outputStream(
-      bufferLabel: Label,
       gui: MultiWindowTextGUI,
       stateRef: Ref[IO, BufferState]
   ): fs2.Stream[IO, Unit] =
@@ -107,15 +113,13 @@ object Main extends IOApp {
       .evalMap(_ =>
         for {
           state <- stateRef.get
-          _ = bufferLabel.setText(state.buffer.collect())
-          _ <- IO.whenA(gui.isPendingUpdate)(IO.delay(gui.updateScreen()))
+          _     <- IO.whenA(gui.isPendingUpdate)(IO.delay(gui.updateScreen()))
         } yield ()
       )
 
   private def blinkStream(interval: FiniteDuration): fs2.Stream[IO, Unit] =
     fs2.Stream
       .fixedRate[IO](interval)
-      .evalTap(_ => logger.info("Blink"))
 
   override def run(args: List[String]): IO[ExitCode] =
     (for {
@@ -132,17 +136,16 @@ object Main extends IOApp {
           _ = mainWindow.setHints(
             List(Window.Hint.CENTERED, Window.Hint.FIT_TERMINAL_WINDOW).asJava
           )
-          bufferLabel      = new Label("Hello world")
-          sidePanelTextBox = new TextBox("Goodbye universe")
-          mainPanel        = new Panel(layoutManager)
-          _                = mainPanel.addComponent(0, sidePanelTextBox)
-          _                = mainPanel.addComponent(1, bufferLabel)
-          _                = mainWindow.setComponent(mainPanel)
-          _                = gui.addWindow(mainWindow)
-
-          exitCode <- outputStream(bufferLabel, gui, bufferState)
-            .concurrently(inputStream(screen, bufferState))
-            .concurrently(blinkStream(500.milliseconds))
+          bufferComponent = new BufferComponent(bufferState)
+//          sidePanelTextBox = new TextBox("Goodbye universe")
+          mainPanel = new Panel(layoutManager)
+//          _                = mainPanel.addComponent(0, sidePanelTextBox)
+          _ = mainPanel.addComponent(1, bufferComponent)
+          _ = mainWindow.setComponent(mainPanel)
+          _ = gui.addWindow(mainWindow)
+          _ = gui.setActiveWindow(mainWindow)
+          exitCode <- outputStream(gui, bufferState)
+            .concurrently(inputStream(screen, bufferComponent, bufferState))
             .compile
             .drain
             .as(ExitCode.Success)
