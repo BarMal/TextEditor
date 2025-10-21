@@ -32,7 +32,6 @@ class BufferComponent(
 
   /** Handles keystrokes and updates BufferState using your existing effects */
   override def handleKeyStroke(key: KeyStroke): Result = {
-    println(s"Capturing input $key")
     stateRef.update(_ ++ key).unsafeRunSync()
     cursorVisible.set(true) // Show cursor immediately after input
     invalidate()
@@ -55,11 +54,17 @@ class BufferComponent(
         g.fill(' ')
 
         // Get current buffer state
-        val state   = stateRef.get.unsafeRunSync()
-        val content = state.buffer.collect()
-        val lines = content.split("\n", -1) // -1 to keep trailing empty strings
+        val state = stateRef.get.unsafeRunSync()
 
-        println(s"New line indices: ${state.newLineIndices.mkString}")
+        val newLineIndices: List[Int] = state.newLineIndices.toList
+        val lineIndices: List[(Int, Int)] = (0 :: newLineIndices).zip(
+          newLineIndices.appended(state.buffer.weight)
+        )
+        val lines: List[String] = lineIndices.map((start, end) =>
+          state.buffer.slice(start, end).collect()
+        )
+
+        val content = state.buffer.collect()
 
         val width  = g.getSize.getColumns
         val height = g.getSize.getRows

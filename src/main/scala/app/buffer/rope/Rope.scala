@@ -80,7 +80,6 @@ trait Rope(using balance: Balance) {
 
     def searchLeaves(leaves: Vector[Leaf]): SearchState =
       val space: String = leaves.map(_.value).mkString
-      println(s"""Searching for '$term' in '$space'""")
       if space.length < term.length then SearchState.Poll
       else
         val maybeIndex: Int = space.indexOf(term)
@@ -93,7 +92,7 @@ trait Rope(using balance: Balance) {
             case _ => SearchState.Poll
 
     @tailrec
-    def _search(
+    def _searchAll(
         current: Rope,
         toVisit: Vector[Rope],
         searchSpace: Vector[Leaf],
@@ -103,43 +102,42 @@ trait Rope(using balance: Balance) {
       current match
         case leaf: Leaf =>
           val space: Vector[Leaf] = searchSpace.appended(leaf)
-          println(space.map(_.value).mkString)
           searchLeaves(space) match
             case SearchState.Found(index) =>
               toVisit.toList match
                 case head :: rest =>
-                  _search(
+                  _searchAll(
                     head,
                     rest.toVector,
                     space.tail,
                     indexOffset + space.head.weight,
                     index :: foundResults
                   )
-                case Nil => Nil
+                case Nil => foundResults
             case SearchState.Poll =>
               toVisit.toList match
                 case head :: rest =>
-                  _search(
+                  _searchAll(
                     head,
                     rest.toVector,
                     space,
                     indexOffset,
                     foundResults
                   )
-                case Nil => Nil
+                case Nil => foundResults
             case SearchState.PollAndPrune =>
               toVisit.toList match
                 case head :: rest =>
-                  _search(
+                  _searchAll(
                     head,
                     rest.toVector,
                     space.tail,
                     indexOffset + space.head.weight,
                     foundResults
                   )
-                case Nil => Nil
+                case Nil => foundResults
         case Node(left, right) =>
-          _search(
+          _searchAll(
             left,
             right +: toVisit,
             searchSpace,
@@ -147,14 +145,13 @@ trait Rope(using balance: Balance) {
             foundResults
           )
 
-    _search(this, Vector.empty[Rope], Vector.empty[Leaf], 0, List.empty[Int])
+    _searchAll(this, Vector.empty[Rope], Vector.empty[Leaf], 0, List.empty[Int])
   }
 
   def search(term: String): Option[Int] = {
 
     def searchLeaves(leaves: Vector[Leaf]): SearchState =
       val space: String = leaves.map(_.value).mkString
-      println(s"""Searching for '$term' in '$space'""")
       if space.length < term.length then SearchState.Poll
       else
         val maybeIndex: Int = space.indexOf(term)
@@ -176,7 +173,6 @@ trait Rope(using balance: Balance) {
       current match
         case leaf: Leaf =>
           val space: Vector[Leaf] = searchSpace.appended(leaf)
-          println(space.map(_.value).mkString)
           searchLeaves(space) match
             case SearchState.Found(index) => Some(indexOffset + index)
             case SearchState.Poll =>
