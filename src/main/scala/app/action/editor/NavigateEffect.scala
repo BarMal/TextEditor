@@ -60,20 +60,17 @@ object NavigateEffect {
   case class CursorToEnd(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int =
-      Math.min(
-        state.buffer.weight,
-        (1 + (state.cursorPosition / state.lineLength)) * state.lineLength
-      )
+      state.newLineIndices
+        .minAfter(state.cursorPosition)
+        .getOrElse(state.buffer.weight)
     override def boundsCheck(state: BufferState): Boolean = true
   }
 
   case class CursorToStart(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int =
-      Math.max(
-        state.cursorPosition - (state.cursorPosition % state.lineLength),
-        0
-      )
+      state.newLineIndices.maxBefore(state.cursorPosition).getOrElse(0)
+
     override def boundsCheck(state: BufferState): Boolean = true
   }
 

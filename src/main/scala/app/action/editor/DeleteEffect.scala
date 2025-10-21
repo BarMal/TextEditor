@@ -40,15 +40,24 @@ object DeleteEffect {
   case class DeleteLeft(modifiers: Vector[Modifier]) extends DeleteEffect {
     override def effect(state: BufferState): BufferState =
       val (start, end) =
-        state.selected.range((state.cursorPosition - 1, state.cursorPosition))
+        state.selected.range(
+          (Math.max(0, state.cursorPosition - 1), state.cursorPosition)
+        )
       deleteRange(state, start, end)
+        .removeNewLineIndex(state.cursorPosition)
   }
 
   case class DeleteRight(modifiers: Vector[Modifier]) extends DeleteEffect {
     override def effect(state: BufferState): BufferState =
       val (start, end) =
-        state.selected.range((state.cursorPosition, state.cursorPosition + 1))
+        state.selected.range(
+          (
+            state.cursorPosition,
+            Math.min(state.buffer.weight, state.cursorPosition + 1)
+          )
+        )
       deleteRange(state, start, end)
+        .removeNewLineIndex(state.cursorPosition)
   }
 
 }

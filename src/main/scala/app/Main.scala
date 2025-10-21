@@ -137,8 +137,8 @@ object Main extends IOApp {
             List(Window.Hint.CENTERED, Window.Hint.FIT_TERMINAL_WINDOW).asJava
           )
           bufferComponent = new BufferComponent(bufferState)
-          _ = bufferComponent.takeFocus()
-//          sidePanelTextBox = new TextBox("Goodbye universe")
+//          _ = bufferComponent.takeFocus()
+//          sidePanelTextBox = new TextBox"Goodbye universe")
           mainPanel = new Panel(layoutManager)
 //          _                = mainPanel.addComponent(0, sidePanelTextBox)
           _ = mainPanel.addComponent(1, bufferComponent)

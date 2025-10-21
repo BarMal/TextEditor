@@ -32,7 +32,7 @@ trait Rope(using balance: Balance) {
   def deleteLeft(start: Int, count: Int): Rope =
     if count == 0 then this
     else if count < 0 then deleteRight(start, Math.abs(count))
-    else if start - count < 0 then deleteLeft(start, start)
+    else if start - count <= 0 then deleteLeft(start, start)
     else
       (for {
         startAndRest <- splitAt(Math.max(0, start - count))
@@ -75,6 +75,80 @@ trait Rope(using balance: Balance) {
 
   def slice(startIndex: Int, endIndex: Int): Rope =
     dropRight(weight - endIndex).dropLeft(startIndex)
+
+  def searchAll(term: String): List[Int] = {
+
+    def searchLeaves(leaves: Vector[Leaf]): SearchState =
+      val space: String = leaves.map(_.value).mkString
+      println(s"""Searching for '$term' in '$space'""")
+      if space.length < term.length then SearchState.Poll
+      else
+        val maybeIndex: Int = space.indexOf(term)
+        if maybeIndex >= 0 then SearchState.Found(maybeIndex)
+        else
+          leaves.toList match
+            case _ :: tail
+                if tail.map(_.value).mkString.length >= term.length =>
+              SearchState.PollAndPrune
+            case _ => SearchState.Poll
+
+    @tailrec
+    def _search(
+        current: Rope,
+        toVisit: Vector[Rope],
+        searchSpace: Vector[Leaf],
+        indexOffset: Int,
+        foundResults: List[Int]
+    ): List[Int] =
+      current match
+        case leaf: Leaf =>
+          val space: Vector[Leaf] = searchSpace.appended(leaf)
+          println(space.map(_.value).mkString)
+          searchLeaves(space) match
+            case SearchState.Found(index) =>
+              toVisit.toList match
+                case head :: rest =>
+                  _search(
+                    head,
+                    rest.toVector,
+                    space.tail,
+                    indexOffset + space.head.weight,
+                    index :: foundResults
+                  )
+                case Nil => Nil
+            case SearchState.Poll =>
+              toVisit.toList match
+                case head :: rest =>
+                  _search(
+                    head,
+                    rest.toVector,
+                    space,
+                    indexOffset,
+                    foundResults
+                  )
+                case Nil => Nil
+            case SearchState.PollAndPrune =>
+              toVisit.toList match
+                case head :: rest =>
+                  _search(
+                    head,
+                    rest.toVector,
+                    space.tail,
+                    indexOffset + space.head.weight,
+                    foundResults
+                  )
+                case Nil => Nil
+        case Node(left, right) =>
+          _search(
+            left,
+            right +: toVisit,
+            searchSpace,
+            indexOffset,
+            foundResults
+          )
+
+    _search(this, Vector.empty[Rope], Vector.empty[Leaf], 0, List.empty[Int])
+  }
 
   def search(term: String): Option[Int] = {
 

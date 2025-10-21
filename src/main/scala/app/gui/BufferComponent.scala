@@ -59,6 +59,8 @@ class BufferComponent(
         val content = state.buffer.collect()
         val lines = content.split("\n", -1) // -1 to keep trailing empty strings
 
+        println(s"New line indices: ${state.newLineIndices.mkString}")
+
         val width  = g.getSize.getColumns
         val height = g.getSize.getRows
 

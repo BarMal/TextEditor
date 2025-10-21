@@ -32,7 +32,7 @@ object WriteEffect {
 
   case object Return extends WriteEffect {
     override def effect(state: BufferState): BufferState =
-      write(state, '\n')
+      write(state, '\n').addNewLineIndex(state.cursorPosition)
   }
 
   case object Tab extends WriteEffect {

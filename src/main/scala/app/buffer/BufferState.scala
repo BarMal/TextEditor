@@ -3,10 +3,17 @@ package app.buffer
 import app.*
 import app.UserInput.flatten
 import app.action.Effect
-import app.action.editor.{DeleteEffect, NavigateEffect, StateChangeEffect, WriteEffect}
+import app.action.editor.{
+  DeleteEffect,
+  NavigateEffect,
+  StateChangeEffect,
+  WriteEffect
+}
 import app.buffer.WriteMode.Write
-import app.buffer.rope.{Rope, Balance}
+import app.buffer.rope.{Balance, Rope}
 import com.googlecode.lanterna.input.KeyStroke
+
+import scala.collection.mutable
 
 //case class State(
 //    bufferState: BufferState,
@@ -48,7 +55,8 @@ case class BufferState(
     writeMode: WriteMode,
     currentFormatting: Set[Formatting],
     formattingMap: Map[Int, Set[Formatting]],
-    viewportSize: Int
+    viewportSize: Int,
+    newLineIndices: mutable.SortedSet[Int]
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -59,6 +67,12 @@ case class BufferState(
       case effect: StateChangeEffect => effect.effect(this)
       case others =>
         this.copy(writeMode = Write, userEffects = others +: userEffects)
+
+  def addNewLineIndex(i: Int): BufferState =
+    this.copy(newLineIndices = newLineIndices + i)
+
+  def removeNewLineIndex(i: Int): BufferState =
+    this.copy(newLineIndices = newLineIndices - i)
 }
 
 object BufferState {
@@ -80,7 +94,7 @@ object BufferState {
       writeMode = Write,
       currentFormatting = Set.empty[Formatting],
       formattingMap = Map.empty[Int, Set[Formatting]],
-      viewportSize = 4096
+      viewportSize = 4096,
+      newLineIndices = mutable.SortedSet.from(Rope.mobyDick.searchAll("\n"))
     )
 }
-
