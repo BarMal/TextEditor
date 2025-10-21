@@ -104,6 +104,7 @@ trait Rope(using balance: Balance) {
           val space: Vector[Leaf] = searchSpace.appended(leaf)
           searchLeaves(space) match
             case SearchState.Found(index) =>
+              val absoluteIndex = indexOffset + index
               toVisit.toList match
                 case head :: rest =>
                   _searchAll(
@@ -111,9 +112,9 @@ trait Rope(using balance: Balance) {
                     rest.toVector,
                     space.tail,
                     indexOffset + space.head.weight,
-                    index :: foundResults
+                    absoluteIndex :: foundResults
                   )
-                case Nil => foundResults
+                case Nil => absoluteIndex :: foundResults
             case SearchState.Poll =>
               toVisit.toList match
                 case head :: rest =>

@@ -46,12 +46,9 @@ class BufferComponent(
           graphics: TextGUIGraphics,
           component: BufferComponent
       ): Unit = {
-        val g = graphics
-
-        // Set colors
-        g.setBackgroundColor(cursorConfig.backgroundColor)
-        g.setForegroundColor(cursorConfig.textColor)
-        g.fill(' ')
+        graphics.setBackgroundColor(cursorConfig.backgroundColor)
+        graphics.setForegroundColor(cursorConfig.textColor)
+        graphics.fill(' ')
 
         // Get current buffer state
         val state = stateRef.get.unsafeRunSync()
@@ -64,16 +61,17 @@ class BufferComponent(
           state.buffer.slice(start, end).collect()
         )
 
-        val content = state.buffer.collect()
-
-        val width  = g.getSize.getColumns
-        val height = g.getSize.getRows
+        val width  = graphics.getSize.getColumns
+        val height = graphics.getSize.getRows
 
         // Calculate which line the cursor is on
-        val textBeforeCursor = content.take(state.cursorPosition)
-        val cursorLine       = textBeforeCursor.count(_ == '\n')
+        val cursorLine =
+          state.newLineIndices.count(_ < state.cursorPosition)
         val cursorColumn =
-          state.cursorPosition - textBeforeCursor.lastIndexOf('\n') - 1
+          state.cursorPosition - state.newLineIndices
+            .maxBefore(state.cursorPosition)
+            .map(_ - 1)
+            .getOrElse(0)
 
         // Draw visible lines
         val startLine    = Math.max(0, cursorLine - height / 2)
@@ -84,7 +82,7 @@ class BufferComponent(
           if (y < height) {
             // Draw line content
             val displayLine = line.take(width)
-            g.putString(0, y, displayLine)
+            graphics.putString(0, y, displayLine)
 
             // Draw cursor if on this line
             if (startLine + idx == cursorLine && cursorVisible.get()) {
@@ -104,13 +102,13 @@ class BufferComponent(
                 cursorConfig.cursorChar
               }
 
-              g.setBackgroundColor(cursorConfig.cursorBackgroundColor)
-              g.setForegroundColor(cursorConfig.cursorForegroundColor)
-              g.setCharacter(cursorX, y, cursorChar)
+              graphics.setBackgroundColor(cursorConfig.cursorBackgroundColor)
+              graphics.setForegroundColor(cursorConfig.cursorForegroundColor)
+              graphics.setCharacter(cursorX, y, cursorChar)
 
               // Reset colors for rest of drawing
-              g.setBackgroundColor(cursorConfig.backgroundColor)
-              g.setForegroundColor(cursorConfig.textColor)
+              graphics.setBackgroundColor(cursorConfig.backgroundColor)
+              graphics.setForegroundColor(cursorConfig.textColor)
             }
           }
         }
