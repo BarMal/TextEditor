@@ -69,10 +69,10 @@ case class BufferState(
         this.copy(writeMode = Write, userEffects = others +: userEffects)
 
   def addNewLineIndex(i: Int): BufferState =
-    this.copy(newLineIndices = newLineIndices + i)
+    this.copy(newLineIndices = newLineIndices.union(Set(i)))
 
   def removeNewLineIndex(i: Int): BufferState =
-    this.copy(newLineIndices = newLineIndices - i)
+    this.copy(newLineIndices = newLineIndices.diff(Set(i)))
 }
 
 object BufferState {
@@ -84,9 +84,9 @@ object BufferState {
       leafChunkSize = 128
     )
 
-  def empty =
+  def empty: BufferState =
     new BufferState(
-      buffer = Rope.mobyDick,
+      buffer = Rope.empty,
       cursorPosition = 0,
       userEffects = Vector.empty[Effect],
       lineLength = 50,
@@ -95,6 +95,13 @@ object BufferState {
       currentFormatting = Set.empty[Formatting],
       formattingMap = Map.empty[Int, Set[Formatting]],
       viewportSize = 4096,
+      newLineIndices = mutable.SortedSet[Int]()
+    )
+
+  def mobyDick: BufferState =
+    empty.copy(
+      buffer = Rope.mobyDick,
       newLineIndices = mutable.SortedSet.from(Rope.mobyDick.searchAll("\n"))
     )
+
 }

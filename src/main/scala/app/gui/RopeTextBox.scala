@@ -15,7 +15,7 @@ class RopeTextBox(var rope: Rope)
   override def handleKeyStroke(key: KeyStroke): Result = {
     key.getKeyType match {
       case KeyType.Character =>
-        rope = rope.insert(cursorPosition, key.getCharacter.toChar)
+        rope = rope.insert(cursorPosition, key.getCharacter.toString)
         cursorX += 1
       case KeyType.Backspace =>
         rope = rope.delete(cursorPosition - 1, cursorPosition)

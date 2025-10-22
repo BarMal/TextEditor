@@ -6,7 +6,7 @@ sealed trait WriteEffect extends BufferEffect {
 
   protected def write(state: BufferState, in: Char): BufferState =
     state.copy(
-      buffer = state.buffer.insert(state.cursorPosition, in),
+      buffer = state.buffer.insert(state.cursorPosition, in.toString),
       cursorPosition = state.cursorPosition + 1,
       userEffects = this +: state.userEffects,
       selected = TogglingSet.empty[Int]

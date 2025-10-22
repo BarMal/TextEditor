@@ -20,10 +20,10 @@ trait Rope(using balance: Balance) {
 
   def splitAt(index: Int): Option[(Rope, Rope)]
 
-  def insert(index: Int, char: Char): Rope =
+  def insert(index: Int, str: String): Rope =
     splitAt(index) match
       case Some(pre, post) =>
-        (post :: (Leaf(char.toString) :: pre)).rebalance
+        (post :: (Leaf(str) :: pre)).rebalance
       case None => this
 
   def delete(startIndex: Int, endIndex: Int): Rope =
@@ -62,6 +62,11 @@ trait Rope(using balance: Balance) {
       case Some((l, r)) =>
         Node(l, r.dropLeft(1) :: Leaf(char.toString)).rebalance
       case None => this
+
+  def replaceAll(term: String, replacement: String): Rope =
+    searchAll(term).sorted.reverse.foldLeft(this)((rope, index) =>
+      rope.delete(index, term.length).insert(index, replacement)
+    )
 
   def collect(): String = {
     def _collect(curr: Rope, acc: Vector[String]): Vector[String] =
@@ -210,6 +215,6 @@ object Rope {
     }
 
   def mobyDick(using balance: Balance): Rope =
-    Rope(Source.fromResource("MobyDick.txt").getLines().mkString("\n"))
+    Rope(Source.fromResource("MobyDick.txt").mkString)
 
 }

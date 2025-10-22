@@ -53,22 +53,44 @@ class BufferComponent(
         // Get current buffer state
         val state = stateRef.get.unsafeRunSync()
 
-        val newLineIndices: List[Int] = state.newLineIndices.toList
-        val lineIndices: List[(Int, Int)] = (0 :: newLineIndices).zip(
-          newLineIndices.appended(state.buffer.weight)
-        )
-        val lines: List[String] = lineIndices.map((start, end) =>
-          state.buffer.slice(start, end).collect()
-        )
+//        println(state.newLineIndices.toList.reverse.scanRight(0)(_ - _).reverse)
+
+//        println(state.newLineIndices.mkString(", "))
 
         val width  = graphics.getSize.getColumns
         val height = graphics.getSize.getRows
 
+        val boundedLineIndices = state.newLineIndices.union(Set(0, state.buffer.weight))
+
+        val startLineIndex = boundedLineIndices
+          .maxBefore(state.cursorPosition - height / 2)
+          .getOrElse(0)
+        val endLineIndex = boundedLineIndices
+          .minAfter(state.cursorPosition + height / 2)
+          .getOrElse(state.buffer.weight)
+
+        println(s"""SLI: $startLineIndex | ELI: $endLineIndex""")
+
+//        val visibleLineIndices = state.newLineIndices.dropWhile(_ != start).takeWhile(_ != end)
+
+        val lines: List[String] =
+          boundedLineIndices
+            .dropWhile(_ <= startLineIndex)
+            .takeWhile(_ <= endLineIndex)
+            .toList
+            .sliding(2)
+            .collect { case start :: end :: Nil =>
+              state.buffer.slice(start, end).collect()
+            }
+            .toList
+
+        lines.foreach(line => println(s"""$line | ${line.count(_ == '\n')}"""))
+
         // Calculate which line the cursor is on
         val cursorLine =
-          state.newLineIndices.count(_ < state.cursorPosition)
+          boundedLineIndices.count(_ < state.cursorPosition)
         val cursorColumn =
-          state.cursorPosition - state.newLineIndices
+          state.cursorPosition - boundedLineIndices
             .maxBefore(state.cursorPosition)
             .map(_ - 1)
             .getOrElse(0)

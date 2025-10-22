@@ -12,9 +12,9 @@ case class Leaf(value: String)(using balance: Balance) extends Rope:
   override def splitAt(index: Int): Option[(Rope, Rope)] =
     Some(Leaf(value.take(index)), Leaf(value.drop(index)))
   override def index(i: Int): Option[Char] = Try(value.charAt(i)).toOption
-  override def insert(index: Int, char: Char): Rope = {
+  override def insert(index: Int, str: String): Rope = {
     val (pre, post) = value.splitAt(index)
-    Rope((pre + char) + post)
+    Rope((pre + str) + post)
   }
   override def deleteLeft(start: Int, count: Int): Rope =
     val (pre, post) = value.splitAt(start)

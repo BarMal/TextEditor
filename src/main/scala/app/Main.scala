@@ -127,7 +127,7 @@ object Main extends IOApp {
       exitCode <- createScreen(config).use { screen =>
         for {
           _           <- logger.info("Starting BAM text editor")
-          bufferState <- Ref[IO].of(BufferState.empty)
+          bufferState <- Ref[IO].of(BufferState.mobyDick)
           gui = new MultiWindowTextGUI(screen)
           layoutManager = new GridLayout(2)
             .setHorizontalSpacing(5)
