@@ -11,6 +11,7 @@ import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.{TerminalPosition, TerminalSize, TextColor}
 
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.mutable
 
 /** A Lanterna component that displays and edits a Rope-based buffer with a
   * customizable blinking cursor
@@ -53,38 +54,39 @@ class BufferComponent(
         // Get current buffer state
         val state = stateRef.get.unsafeRunSync()
 
-//        println(state.newLineIndices.toList.reverse.scanRight(0)(_ - _).reverse)
-
-//        println(state.newLineIndices.mkString(", "))
-
         val width  = graphics.getSize.getColumns
-        val height = graphics.getSize.getRows
+        val height = 999999
 
-        val boundedLineIndices = state.newLineIndices.union(Set(0, state.buffer.weight))
+        val boundedLineIndices: mutable.SortedSet[Int] =
+          state.newLineIndices.union(Set(0, state.buffer.weight))
 
         val startLineIndex = boundedLineIndices
-          .maxBefore(state.cursorPosition - height / 2)
+          .maxBefore(state.cursorPosition - (height / 2))
           .getOrElse(0)
         val endLineIndex = boundedLineIndices
-          .minAfter(state.cursorPosition + height / 2)
+          .minAfter(state.cursorPosition + (height / 2))
           .getOrElse(state.buffer.weight)
 
-        println(s"""SLI: $startLineIndex | ELI: $endLineIndex""")
+//        println(s"""SLI: $startLineIndex | ELI: $endLineIndex""")
 
 //        val visibleLineIndices = state.newLineIndices.dropWhile(_ != start).takeWhile(_ != end)
 
+        val visibleLines = boundedLineIndices
+          .dropWhile(_ < startLineIndex)
+          .takeWhile(_ <= endLineIndex)
+        println(
+          s"""SLI $startLineIndex | ELI $endLineIndex | CP ${state.cursorPosition} | H $height | VL ${visibleLines
+              .mkString(", ")} | BL ${boundedLineIndices.mkString(", ")}"""
+        )
         val lines: List[String] =
-          boundedLineIndices
-            .dropWhile(_ <= startLineIndex)
-            .takeWhile(_ <= endLineIndex)
-            .toList
+          visibleLines.toList
             .sliding(2)
             .collect { case start :: end :: Nil =>
-              state.buffer.slice(start, end).collect()
+              state.buffer.slice(start, end).replaceAll("\n", "").collect()
             }
             .toList
 
-        lines.foreach(line => println(s"""$line | ${line.count(_ == '\n')}"""))
+//        lines.foreach(line => println(s"""$line | ${line.count(_ == '\n')}"""))
 
         // Calculate which line the cursor is on
         val cursorLine =
@@ -92,47 +94,43 @@ class BufferComponent(
         val cursorColumn =
           state.cursorPosition - boundedLineIndices
             .maxBefore(state.cursorPosition)
-            .map(_ - 1)
             .getOrElse(0)
 
         // Draw visible lines
-        val startLine    = Math.max(0, cursorLine - height / 2)
-        val visibleLines = lines.slice(startLine, startLine + height)
+//        val startLine    = Math.max(0, cursorLine - height / 2)
+//        val visibleLines = lines.slice(startLine, startLine + height)
 
-        visibleLines.zipWithIndex.foreach { case (line, idx) =>
-          val y = idx
-          if (y < height) {
-            // Draw line content
-            val displayLine = line.take(width)
-            graphics.putString(0, y, displayLine)
-
-            // Draw cursor if on this line
-            if (startLine + idx == cursorLine && cursorVisible.get()) {
-              val cursorX = Math.min(cursorColumn, width - 1)
-
-              // Get character at cursor position (or space if at end of line)
-              val charAtCursor = if (cursorColumn < line.length) {
-                line.charAt(cursorColumn)
-              } else {
-                ' '
-              }
-
-              // Draw cursor
-              val cursorChar = if (cursorConfig.showCharacterUnderCursor) {
-                charAtCursor
-              } else {
-                cursorConfig.cursorChar
-              }
-
-              graphics.setBackgroundColor(cursorConfig.cursorBackgroundColor)
-              graphics.setForegroundColor(cursorConfig.cursorForegroundColor)
-              graphics.setCharacter(cursorX, y, cursorChar)
-
-              // Reset colors for rest of drawing
-              graphics.setBackgroundColor(cursorConfig.backgroundColor)
-              graphics.setForegroundColor(cursorConfig.textColor)
-            }
-          }
+        lines.zipWithIndex.foreach { case (line, y) =>
+          // Draw line content
+//            val displayLine = line.take(width)
+          graphics.putString(0, y, line)
+          println(s"""line $line | index $y""")
+        // Draw cursor if on this line
+//            if (startLineIndex + y == cursorLine && cursorVisible.get()) {
+//              val cursorX = Math.min(cursorColumn, width - 1)
+//
+//              // Get character at cursor position (or space if at end of line)
+//              val charAtCursor = if (cursorColumn < line.length) {
+//                line.charAt(cursorColumn)
+//              } else {
+//                ' '
+//              }
+//
+//              // Draw cursor
+//              val cursorChar = if (cursorConfig.showCharacterUnderCursor) {
+//                charAtCursor
+//              } else {
+//                cursorConfig.cursorChar
+//              }
+//
+//              graphics.setBackgroundColor(cursorConfig.cursorBackgroundColor)
+//              graphics.setForegroundColor(cursorConfig.cursorForegroundColor)
+//              graphics.setCharacter(cursorX, y, cursorChar)
+//
+//              // Reset colors for rest of drawing
+//              graphics.setBackgroundColor(cursorConfig.backgroundColor)
+//              graphics.setForegroundColor(cursorConfig.textColor)
+//            }
         }
       }
 
