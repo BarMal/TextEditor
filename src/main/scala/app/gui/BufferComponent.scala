@@ -104,7 +104,7 @@ class BufferComponent(
           // Draw line content
 //            val displayLine = line.take(width)
           graphics.putString(0, y, line)
-          println(s"""line $line | index $y""")
+//          println(s"""line $line | index $y""")
         // Draw cursor if on this line
 //            if (startLineIndex + y == cursorLine && cursorVisible.get()) {
 //              val cursorX = Math.min(cursorColumn, width - 1)

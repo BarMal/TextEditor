@@ -44,7 +44,16 @@ object NavigateEffect {
   case class CursorUp(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int =
-      state.cursorPosition - state.lineLength
+      state.newLineIndices
+        .maxBefore(state.cursorPosition)
+        .flatMap { startOfLine =>
+          val columnPos = state.cursorPosition - startOfLine
+          state.newLineIndices.maxBefore(startOfLine).map { startOfPrev =>
+            Math.min(startOfLine + columnPos, startOfLine - 1)
+          }
+        }
+        .getOrElse(0)
+
     override def boundsCheck(state: BufferState): Boolean =
       0 <= moveCursor(state)
   }
@@ -52,7 +61,17 @@ object NavigateEffect {
   case class CursorDown(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int =
-      state.cursorPosition + state.lineLength
+      state.newLineIndices
+        .maxBefore(state.cursorPosition)
+        .flatMap { startOfLine =>
+          val columnPos = state.cursorPosition - startOfLine
+          state.newLineIndices.minAfter(state.cursorPosition).map {
+            startOfNext =>
+              Math.min(startOfNext + columnPos, startOfNext + 1)
+          }
+        }
+        .getOrElse(state.buffer.weight)
+
     override def boundsCheck(state: BufferState): Boolean =
       moveCursor(state) <= state.buffer.weight
   }
