@@ -56,7 +56,8 @@ case class BufferState(
     currentFormatting: Set[Formatting],
     formattingMap: Map[Int, Set[Formatting]],
     viewportSize: Int,
-    newLineIndices: mutable.SortedSet[Int]
+    newLineIndices: mutable.SortedSet[Int],
+    linePositions: List[(Int, Int)]
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -95,13 +96,20 @@ object BufferState {
       currentFormatting = Set.empty[Formatting],
       formattingMap = Map.empty[Int, Set[Formatting]],
       viewportSize = 4096,
-      newLineIndices = mutable.SortedSet[Int]()
+      newLineIndices = mutable.SortedSet[Int](),
+      linePositions = List.empty[(Int, Int)]
     )
 
   def mobyDick: BufferState =
     empty.copy(
       buffer = Rope.mobyDick,
-      newLineIndices = mutable.SortedSet.from(Rope.mobyDick.searchAll("\n"))
+      newLineIndices = mutable.SortedSet.from(Rope.mobyDick.searchAll("\n")),
+      linePositions = {
+        val newLines = Rope.mobyDick.searchAll("\n")
+        (List(0) ++ newLines.map(_ + 1))
+          .zip(newLines ++ List(Rope.mobyDick.weight))
+
+      }
     )
 
 }

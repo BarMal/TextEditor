@@ -1,6 +1,7 @@
 package app.gui
 
 import app.buffer.BufferState
+import app.buffer.rope.Balance
 import app.config.{CursorConfig, EditorConfig}
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.IORuntime
@@ -22,19 +23,9 @@ class BufferComponent(
 )(using runtime: IORuntime)
     extends AbstractInteractableComponent[BufferComponent] {
 
-  // Tracks whether the cursor is visible (for blinking)
-  private val cursorVisible = new AtomicBoolean(true)
-
-  /** Called by external FS2 tick stream to toggle cursor visibility */
-  def onBlinkTick(): Unit = {
-    cursorVisible.set(!cursorVisible.get())
-    invalidate() // Request repaint
-  }
-
   /** Handles keystrokes and updates BufferState using your existing effects */
   override def handleKeyStroke(key: KeyStroke): Result = {
     stateRef.update(_ ++ key).unsafeRunSync()
-    cursorVisible.set(true) // Show cursor immediately after input
     invalidate()
     Result.HANDLED
   }
@@ -68,21 +59,23 @@ class BufferComponent(
           .getOrElse(state.buffer.weight)
 
 //        println(s"""SLI: $startLineIndex | ELI: $endLineIndex""")
-
 //        val visibleLineIndices = state.newLineIndices.dropWhile(_ != start).takeWhile(_ != end)
 
         val visibleLines = boundedLineIndices
           .dropWhile(_ < startLineIndex)
           .takeWhile(_ <= endLineIndex)
         println(
-          s"""SLI $startLineIndex | ELI $endLineIndex | CP ${state.cursorPosition} | H $height | VL ${visibleLines
+          s"""SLI $startLineIndex | ELI $endLineIndex | CP ${state.cursorPosition} | W $width | H $height | VL ${visibleLines
               .mkString(", ")} | BL ${boundedLineIndices.mkString(", ")}"""
         )
         val lines: List[String] =
           visibleLines.toList
             .sliding(2)
             .collect { case start :: end :: Nil =>
-              state.buffer.slice(start, end).replaceAll("\n", "").collect()
+              state.buffer
+                .slice(start, end)
+                .replaceAll("\n", "")
+                .collect()
             }
             .toList
 

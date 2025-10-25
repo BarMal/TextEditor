@@ -110,10 +110,11 @@ trait Rope(using balance: Balance) {
           searchLeaves(space) match
             case SearchState.Found(index) =>
               val absoluteIndex = indexOffset + index
+              val (searched, toSearch) = leaf.splitAt(index).getOrElse((leaf, Leaf("")))
               toVisit.toList match
                 case head :: rest =>
                   _searchAll(
-                    head,
+                    toSearch :: head,
                     rest.toVector,
                     space.tail,
                     indexOffset + space.head.weight,
@@ -215,6 +216,6 @@ object Rope {
     }
 
   def mobyDick(using balance: Balance): Rope =
-    Rope(Source.fromResource("MobyDick.txt").mkString)
+    Rope(Source.fromResource("MobyDick.txt").mkString).rebalance
 
 }
