@@ -44,117 +44,133 @@ object NavigateEffect {
   case class CursorUp(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int = {
-      // Get all line boundaries including start and end
-      val boundaries = state.newLineIndices.union(Set(0, state.buffer.weight))
+      val content = state.buffer.collect()
 
-      // Find the start of the current line
-      val currentLineStart = boundaries
-        .filter(_ <= state.cursorPosition)
-        .maxOption
-        .getOrElse(0)
+      // Find current line boundaries
+      val textBefore = content.take(state.cursorPosition)
+      val currentLineStart = textBefore.lastIndexOf('\n') match {
+        case -1  => 0
+        case idx => idx + 1
+      }
 
-      // Calculate column position within current line
+      // If we're at the start of the buffer, can't go up
+      if (currentLineStart == 0 && state.cursorPosition == 0) {
+        return state.cursorPosition
+      }
+
+      // Column position in current line
       val columnPos = state.cursorPosition - currentLineStart
 
-      // Find the start of the previous line
-      val prevLineStart = boundaries
-        .filter(_ < currentLineStart)
-        .maxOption
-        .getOrElse(0)
+      // Find previous line start
+      val beforeCurrentLine = content.take(currentLineStart)
+      val prevLineStart = if (currentLineStart > 0) {
+        beforeCurrentLine.dropRight(1).lastIndexOf('\n') match {
+          case -1  => 0
+          case idx => idx + 1
+        }
+      } else 0
 
-      // Find the end of the previous line (start of current line - 1)
-      // But handle the newline character itself
+      // Find previous line end (excluding the newline)
       val prevLineEnd = if (currentLineStart > 0) currentLineStart - 1 else 0
 
-      // Calculate the length of the previous line
+      // Length of previous line
       val prevLineLength = prevLineEnd - prevLineStart
 
-      // Move to the same column in the previous line, or end of line if shorter
+      // Move to same column in previous line, or end if shorter
       prevLineStart + Math.min(columnPos, prevLineLength)
     }
 
     override def boundsCheck(state: BufferState): Boolean = {
-      val boundaries = state.newLineIndices.union(Set(0, state.buffer.weight))
-      val currentLineStart = boundaries
-        .filter(_ <= state.cursorPosition)
-        .maxOption
-        .getOrElse(0)
+      val content    = state.buffer.collect()
+      val textBefore = content.take(state.cursorPosition)
+      val currentLineStart = textBefore.lastIndexOf('\n') match {
+        case -1  => 0
+        case idx => idx + 1
+      }
 
-      // Check if there's a previous line
-      boundaries.exists(_ < currentLineStart)
+      // Can go up if we're not on the first line
+      currentLineStart > 0
     }
   }
 
   case class CursorDown(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
     override def moveCursor(state: BufferState): Int = {
-      // Get all line boundaries including start and end
-      val boundaries = state.newLineIndices.union(Set(0, state.buffer.weight))
+      val content = state.buffer.collect()
 
-      // Find the start of the current line
-      val currentLineStart = boundaries
-        .filter(_ <= state.cursorPosition)
-        .maxOption
-        .getOrElse(0)
+      // Find current line boundaries
+      val textBefore = content.take(state.cursorPosition)
+      val currentLineStart = textBefore.lastIndexOf('\n') match {
+        case -1  => 0
+        case idx => idx + 1
+      }
 
-      // Calculate column position within current line
+      // Column position in current line
       val columnPos = state.cursorPosition - currentLineStart
 
-      // Find the start of the next line (first boundary after current cursor)
-      val nextLineStartOpt = boundaries
-        .filter(_ > state.cursorPosition)
-        .minOption
-
-      nextLineStartOpt match {
-        case Some(nextLineStart) =>
-          // Find the end of the next line
-          val nextLineEndOpt = boundaries
-            .filter(_ > nextLineStart)
-            .minOption
-
-          val nextLineEnd = nextLineEndOpt.getOrElse(state.buffer.weight)
-
-          // Calculate length of next line (excluding newline)
-          val nextLineLength = nextLineEnd - nextLineStart -
-            (if (nextLineEndOpt.isDefined) 1 else 0)
-
-          // Move to same column or end of line if shorter
-          nextLineStart + Math.min(columnPos, nextLineLength)
-
-        case None =>
-          // Already on last line, move to end
-          state.buffer.weight
+      // Find next line start
+      val textAfter = content.drop(state.cursorPosition)
+      val nextLineStartOffset = textAfter.indexOf('\n') match {
+        case -1  => return state.cursorPosition // No next line
+        case idx => idx + 1
       }
+
+      val nextLineStart = state.cursorPosition + nextLineStartOffset
+
+      // If at end of buffer, can't go down
+      if (nextLineStart >= content.length) {
+        return state.cursorPosition
+      }
+
+      // Find next line end
+      val textFromNextLine = content.drop(nextLineStart)
+      val nextLineEnd = textFromNextLine.indexOf('\n') match {
+        case -1  => content.length
+        case idx => nextLineStart + idx
+      }
+
+      // Length of next line
+      val nextLineLength = nextLineEnd - nextLineStart
+
+      // Move to same column in next line, or end if shorter
+      nextLineStart + Math.min(columnPos, nextLineLength)
     }
 
     override def boundsCheck(state: BufferState): Boolean = {
-      val boundaries = state.newLineIndices.union(Set(0, state.buffer.weight))
-      // Check if there's a next line
-      boundaries.exists(_ > state.cursorPosition)
+      val content   = state.buffer.collect()
+      val textAfter = content.drop(state.cursorPosition)
+
+      // Can go down if there's a newline after cursor
+      textAfter.indexOf('\n') >= 0
     }
   }
 
   case class CursorToEnd(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
-    override def moveCursor(state: BufferState): Int =
-      // Find the next newline after cursor, or end of buffer
-      state.newLineIndices
-        .filter(_ > state.cursorPosition)
-        .minOption
-        .getOrElse(state.buffer.weight)
+    override def moveCursor(state: BufferState): Int = {
+      val content   = state.buffer.collect()
+      val textAfter = content.drop(state.cursorPosition)
+
+      textAfter.indexOf('\n') match {
+        case -1  => state.buffer.weight        // End of buffer
+        case idx => state.cursorPosition + idx // End of current line
+      }
+    }
+
     override def boundsCheck(state: BufferState): Boolean = true
   }
 
   case class CursorToStart(modifiers: Vector[Modifier])
       extends NavigateEffect(modifiers) {
-    override def moveCursor(state: BufferState): Int =
-      // Find the start of current line
-      // This is either 0 or the position right after the previous newline
-      state.newLineIndices
-        .filter(_ < state.cursorPosition)
-        .maxOption
-        .map(_ + 1) // Move to position after the newline
-        .getOrElse(0)
+    override def moveCursor(state: BufferState): Int = {
+      val content    = state.buffer.collect()
+      val textBefore = content.take(state.cursorPosition)
+
+      textBefore.lastIndexOf('\n') match {
+        case -1  => 0       // Start of buffer
+        case idx => idx + 1 // Start of current line (after the newline)
+      }
+    }
 
     override def boundsCheck(state: BufferState): Boolean = true
   }
@@ -170,5 +186,4 @@ object NavigateEffect {
     override def moveCursor(state: BufferState): Int      = state.buffer.weight
     override def boundsCheck(state: BufferState): Boolean = true
   }
-
 }

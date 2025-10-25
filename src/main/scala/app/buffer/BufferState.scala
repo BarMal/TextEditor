@@ -55,9 +55,7 @@ case class BufferState(
     writeMode: WriteMode,
     currentFormatting: Set[Formatting],
     formattingMap: Map[Int, Set[Formatting]],
-    viewportSize: Int,
-    newLineIndices: mutable.SortedSet[Int],
-    linePositions: List[(Int, Int)]
+    viewportSize: Int
 ) extends Focusable[BufferState] {
 
   override def ++(in: KeyStroke): BufferState =
@@ -69,11 +67,6 @@ case class BufferState(
       case others =>
         this.copy(writeMode = Write, userEffects = others +: userEffects)
 
-  def addNewLineIndex(i: Int): BufferState =
-    this.copy(newLineIndices = newLineIndices.union(Set(i)))
-
-  def removeNewLineIndex(i: Int): BufferState =
-    this.copy(newLineIndices = newLineIndices.diff(Set(i)))
 }
 
 object BufferState {
@@ -95,21 +88,10 @@ object BufferState {
       writeMode = Write,
       currentFormatting = Set.empty[Formatting],
       formattingMap = Map.empty[Int, Set[Formatting]],
-      viewportSize = 4096,
-      newLineIndices = mutable.SortedSet[Int](),
-      linePositions = List.empty[(Int, Int)]
+      viewportSize = 4096
     )
 
   def mobyDick: BufferState =
-    empty.copy(
-      buffer = Rope.mobyDick,
-      newLineIndices = mutable.SortedSet.from(Rope.mobyDick.searchAll("\n")),
-      linePositions = {
-        val newLines = Rope.mobyDick.searchAll("\n")
-        (List(0) ++ newLines.map(_ + 1))
-          .zip(newLines ++ List(Rope.mobyDick.weight))
-
-      }
-    )
+    empty.copy(buffer = Rope.mobyDick)
 
 }

@@ -90,11 +90,12 @@ trait Rope(using balance: Balance) {
         val maybeIndex: Int = space.indexOf(term)
         if maybeIndex >= 0 then SearchState.Found(maybeIndex)
         else
-          leaves.toList match
-            case _ :: tail
-                if tail.map(_.value).mkString.length >= term.length =>
-              SearchState.PollAndPrune
-            case _ => SearchState.Poll
+          // Check if we need to keep the last few leaves for potential matches
+          // that span across leaf boundaries
+          val keepSize  = term.length - 1
+          val spaceTail = space.takeRight(keepSize)
+          if spaceTail.length >= term.length - 1 then SearchState.PollAndPrune
+          else SearchState.Poll
 
     @tailrec
     def _searchAll(
@@ -110,17 +111,43 @@ trait Rope(using balance: Balance) {
           searchLeaves(space) match
             case SearchState.Found(index) =>
               val absoluteIndex = indexOffset + index
-              val (searched, toSearch) = leaf.splitAt(index).getOrElse((leaf, Leaf("")))
+              // Continue searching in the same space for overlapping matches
+              // by advancing just past the found match
+              val searchedString        = space.map(_.value).mkString
+              val remainingStartInSpace = index + 1
+
+              // Calculate which leaves to keep based on where match was found
+              val (leavesBefore, leavesFromMatch) = space.span { l =>
+                space
+                  .takeWhile(_ != l)
+                  .map(_.value)
+                  .mkString
+                  .length < remainingStartInSpace
+              }
+
+              val newOffset = indexOffset + remainingStartInSpace
+
               toVisit.toList match
                 case head :: rest =>
                   _searchAll(
-                    toSearch :: head,
+                    head,
                     rest.toVector,
-                    space.tail,
-                    indexOffset + space.head.weight,
+                    leavesFromMatch,
+                    newOffset,
                     absoluteIndex :: foundResults
                   )
-                case Nil => absoluteIndex :: foundResults
+                case Nil =>
+                  // No more nodes to visit, but check remaining space
+                  if leavesFromMatch.nonEmpty &&
+                    leavesFromMatch.map(_.value).mkString.contains(term)
+                  then
+                    val finalSpace = leavesFromMatch.map(_.value).mkString
+                    val finalIndex = finalSpace.indexOf(term)
+                    if finalIndex >= 0 then
+                      (newOffset + finalIndex) :: absoluteIndex :: foundResults
+                    else absoluteIndex :: foundResults
+                  else absoluteIndex :: foundResults
+
             case SearchState.Poll =>
               toVisit.toList match
                 case head :: rest =>
@@ -132,17 +159,23 @@ trait Rope(using balance: Balance) {
                     foundResults
                   )
                 case Nil => foundResults
+
             case SearchState.PollAndPrune =>
               toVisit.toList match
                 case head :: rest =>
+                  // Keep last (term.length - 1) characters worth of leaves
+                  val prunedSpace = pruneLeaves(space, term.length - 1)
+                  val prunedOffset = indexOffset +
+                    (space.map(_.weight).sum - prunedSpace.map(_.weight).sum)
                   _searchAll(
                     head,
                     rest.toVector,
-                    space.tail,
-                    indexOffset + space.head.weight,
+                    prunedSpace,
+                    prunedOffset,
                     foundResults
                   )
                 case Nil => foundResults
+
         case Node(left, right) =>
           _searchAll(
             left,
@@ -152,7 +185,25 @@ trait Rope(using balance: Balance) {
             foundResults
           )
 
-    _searchAll(this, Vector.empty[Rope], Vector.empty[Leaf], 0, List.empty[Int])
+    _searchAll(
+      this,
+      Vector.empty[Rope],
+      Vector.empty[Leaf],
+      0,
+      List.empty[Int]
+    ).reverse.distinct
+  }
+
+  private def pruneLeaves(
+      leaves: Vector[Leaf],
+      keepChars: Int
+  ): Vector[Leaf] = {
+    @tailrec
+    def go(remaining: Vector[Leaf], accumulated: Int): Vector[Leaf] =
+      if accumulated >= keepChars || remaining.isEmpty then remaining
+      else go(remaining.tail, accumulated + remaining.head.weight)
+
+    go(leaves.reverse, 0).reverse
   }
 
   def search(term: String): Option[Int] = {
@@ -164,11 +215,15 @@ trait Rope(using balance: Balance) {
         val maybeIndex: Int = space.indexOf(term)
         if maybeIndex >= 0 then SearchState.Found(maybeIndex)
         else
-          leaves.toList match
-            case _ :: tail
-                if tail.map(_.value).mkString.length >= term.length =>
-              SearchState.PollAndPrune
-            case _ => SearchState.Poll
+          // Keep enough leaves to catch matches spanning boundaries
+          val keepSize = term.length - 1
+          if leaves.size > 1 && leaves
+              .map(_.value)
+              .mkString
+              .takeRight(keepSize)
+              .length >= keepSize
+          then SearchState.PollAndPrune
+          else SearchState.Poll
 
     @tailrec
     def _search(
@@ -190,11 +245,14 @@ trait Rope(using balance: Balance) {
             case SearchState.PollAndPrune =>
               toVisit.toList match
                 case head :: rest =>
+                  val prunedSpace = pruneLeaves(space, term.length - 1)
+                  val prunedOffset = indexOffset +
+                    (space.map(_.weight).sum - prunedSpace.map(_.weight).sum)
                   _search(
                     head,
                     rest.toVector,
-                    space.tail,
-                    indexOffset + space.head.weight
+                    prunedSpace,
+                    prunedOffset
                   )
                 case Nil => None
         case Node(left, right) =>
@@ -216,6 +274,5 @@ object Rope {
     }
 
   def mobyDick(using balance: Balance): Rope =
-    Rope(Source.fromResource("MobyDick.txt").mkString).rebalance
-
+    Rope(Source.fromResource("MobyDick.txt").mkString)
 }

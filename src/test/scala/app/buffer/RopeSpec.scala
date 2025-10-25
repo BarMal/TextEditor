@@ -70,7 +70,6 @@ class RopeSpec extends AnyFlatSpec with Matchers {
         r.collect() shouldBe er
       }
     }
-
   }
 
   it should "insert" in new RopeSpecScope {
@@ -92,7 +91,7 @@ class RopeSpec extends AnyFlatSpec with Matchers {
       .collect() shouldBe "Hello! World!"
   }
 
-  it should "search" in new ChunkedRopeSpecScope {
+  it should "search for first occurrence" in new ChunkedRopeSpecScope {
     val lorem0: String =
       s"""Lorem ipsum dolor sit amet, consectetur adipiscing
          |elit, sed do eiusmod tempor incididunt ut labore et
@@ -119,8 +118,131 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     rope.search(search3) shouldBe None
   }
 
+  it should "search for all occurrences" in new ChunkedRopeSpecScope {
+    val text = "the cat sat on the mat with the rat"
+    val rope = Rope(text)
+
+    val results = rope.searchAll("the")
+    val expected = List(0, 15, 28) // All positions of "the"
+
+    results should contain theSameElementsAs expected
+  }
+
+  it should "find overlapping matches" in new ChunkedRopeSpecScope {
+    val text = "aaaaaa"
+    val rope = Rope(text)
+
+    val results = rope.searchAll("aa")
+    // Should find: positions 0, 1, 2, 3, 4
+    results.length should be >= 5
+  }
+
+  it should "search across leaf boundaries" in new ChunkedRopeSpecScope {
+    // With leafChunkSize = 30, create a pattern that spans boundaries
+    val text = "a" * 28 + "boundary" + "b" * 28
+    val rope = Rope(text)
+
+    rope.search("boundary") shouldBe Some(28)
+    rope.searchAll("boundary") should contain(28)
+  }
+
+  it should "handle repeated patterns" in new ChunkedRopeSpecScope {
+    val text = "abc abc abc abc"
+    val rope = Rope(text)
+
+    val results = rope.searchAll("abc")
+    results should contain theSameElementsAs List(0, 4, 8, 12)
+  }
+
+  it should "handle patterns at boundaries" in new ChunkedRopeSpecScope {
+    // Create text where pattern spans leaf boundary
+    val part1 = "x" * 28 + "te"
+    val part2 = "st" + "y" * 28
+    val text = part1 + part2
+    val rope = Rope(text)
+
+    rope.search("test") shouldBe Some(28)
+  }
+
+  it should "handle single character searches" in new ChunkedRopeSpecScope {
+    val text = "abcabc"
+    val rope = Rope(text)
+
+    val results = rope.searchAll("a")
+    results should contain theSameElementsAs List(0, 3)
+  }
+
+  it should "handle search at end of rope" in new ChunkedRopeSpecScope {
+    val text = "hello world test"
+    val rope = Rope(text)
+
+    rope.search("test") shouldBe Some(12)
+    rope.searchAll("test") should contain(12)
+  }
+
+  it should "handle empty search results" in new ChunkedRopeSpecScope {
+    val text = "hello world"
+    val rope = Rope(text)
+
+    rope.search("xyz") shouldBe None
+    rope.searchAll("xyz") shouldBe empty
+  }
+
+  it should "handle case-sensitive searches" in new ChunkedRopeSpecScope {
+    val text = "Hello hello HELLO"
+    val rope = Rope(text)
+
+    rope.searchAll("hello") should contain theSameElementsAs List(6)
+    rope.searchAll("Hello") should contain theSameElementsAs List(0)
+    rope.searchAll("HELLO") should contain theSameElementsAs List(12)
+  }
+
+  it should "handle multiline searches" in new ChunkedRopeSpecScope {
+    val text = "line1\npattern\nline3\npattern\nline5"
+    val rope = Rope(text)
+
+    val results = rope.searchAll("pattern")
+    results.length shouldBe 2
+    results should contain theSameElementsAs List(6, 20)
+  }
+
+  it should "handle long patterns" in new ChunkedRopeSpecScope {
+    val pattern = "this is a very long pattern that spans multiple chunks"
+    val text = "prefix " + pattern + " middle " + pattern + " suffix"
+    val rope = Rope(text)
+
+    val results = rope.searchAll(pattern)
+    results.length shouldBe 2
+  }
+
+  it should "handle patterns with special characters" in new ChunkedRopeSpecScope {
+    val text = "test\nwith\ttabs and spaces"
+    val rope = Rope(text)
+
+    rope.search("\n") shouldBe Some(4)
+    rope.search("\t") shouldBe Some(9)
+    rope.search(" ") shouldBe Some(14)
+  }
+
+  it should "replaceAll correctly" in new ChunkedRopeSpecScope {
+    val text = "the cat sat on the mat"
+    val rope = Rope(text)
+
+    val replaced = rope.replaceAll("the", "a")
+    replaced.collect() shouldBe "a cat sat on a mat"
+  }
+
+  it should "replaceAll with longer replacement" in new ChunkedRopeSpecScope {
+    val text = "a b a b a"
+    val rope = Rope(text)
+
+    val replaced = rope.replaceAll("a", "long")
+    replaced.collect() shouldBe "long b long b long"
+  }
+
   it should "handle large strings" in new RopeSpecScope {
-    Rope(Range.inclusive(0, 50000000).map(_ => 'a').mkString).rebalance.rebuild
+    val largeRope = Rope(Range.inclusive(0, 50000000).map(_ => 'a').mkString)
+    largeRope.rebalance.rebuild
   }
 
   trait RopeSpecScope {
@@ -132,5 +254,4 @@ class RopeSpec extends AnyFlatSpec with Matchers {
     given balance: Balance =
       Balance(weightBalance = 3, heightBalance = 1, leafChunkSize = 30)
   }
-
 }

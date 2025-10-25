@@ -42,282 +42,183 @@ class BufferComponent(
         graphics.setForegroundColor(cursorConfig.textColor)
         graphics.fill(' ')
 
-        // Get current buffer state
-        val state = stateRef.get.unsafeRunSync()
-
+        // Get current buffer state and dimensions
+        val state  = stateRef.get.unsafeRunSync()
         val width  = graphics.getSize.getColumns
-        val height = 999999
+        val height = graphics.getSize.getRows
 
-        val boundedLineIndices: mutable.SortedSet[Int] =
-          state.newLineIndices.union(Set(0, state.buffer.weight))
+        // Build visible lines with proper word wrapping
+        val visibleLines = buildVisibleLines(state, width, height)
 
-        val startLineIndex = boundedLineIndices
-          .maxBefore(state.cursorPosition - (height / 2))
-          .getOrElse(0)
-        val endLineIndex = boundedLineIndices
-          .minAfter(state.cursorPosition + (height / 2))
-          .getOrElse(state.buffer.weight)
-
-//        println(s"""SLI: $startLineIndex | ELI: $endLineIndex""")
-//        val visibleLineIndices = state.newLineIndices.dropWhile(_ != start).takeWhile(_ != end)
-
-        val visibleLines = boundedLineIndices
-          .dropWhile(_ < startLineIndex)
-          .takeWhile(_ <= endLineIndex)
-        println(
-          s"""SLI $startLineIndex | ELI $endLineIndex | CP ${state.cursorPosition} | W $width | H $height | VL ${visibleLines
-              .mkString(", ")} | BL ${boundedLineIndices.mkString(", ")}"""
-        )
-        val lines: List[String] =
-          visibleLines.toList
-            .sliding(2)
-            .collect { case start :: end :: Nil =>
-              state.buffer
-                .slice(start, end)
-                .replaceAll("\n", "")
-                .collect()
-            }
-            .toList
-
-//        lines.foreach(line => println(s"""$line | ${line.count(_ == '\n')}"""))
-
-        // Calculate which line the cursor is on
-        val cursorLine =
-          boundedLineIndices.count(_ < state.cursorPosition)
-        val cursorColumn =
-          state.cursorPosition - boundedLineIndices
-            .maxBefore(state.cursorPosition)
-            .getOrElse(0)
+        // Calculate cursor position in screen coordinates
+        val (cursorScreenCol, cursorScreenRow) =
+          calculateCursorPosition(state, visibleLines, width)
 
         // Draw visible lines
-//        val startLine    = Math.max(0, cursorLine - height / 2)
-//        val visibleLines = lines.slice(startLine, startLine + height)
-
-        lines.zipWithIndex.foreach { case (line, y) =>
-          // Draw line content
-//            val displayLine = line.take(width)
-          graphics.putString(0, y, line)
-//          println(s"""line $line | index $y""")
-        // Draw cursor if on this line
-//            if (startLineIndex + y == cursorLine && cursorVisible.get()) {
-//              val cursorX = Math.min(cursorColumn, width - 1)
-//
-//              // Get character at cursor position (or space if at end of line)
-//              val charAtCursor = if (cursorColumn < line.length) {
-//                line.charAt(cursorColumn)
-//              } else {
-//                ' '
-//              }
-//
-//              // Draw cursor
-//              val cursorChar = if (cursorConfig.showCharacterUnderCursor) {
-//                charAtCursor
-//              } else {
-//                cursorConfig.cursorChar
-//              }
-//
-//              graphics.setBackgroundColor(cursorConfig.cursorBackgroundColor)
-//              graphics.setForegroundColor(cursorConfig.cursorForegroundColor)
-//              graphics.setCharacter(cursorX, y, cursorChar)
-//
-//              // Reset colors for rest of drawing
-//              graphics.setBackgroundColor(cursorConfig.backgroundColor)
-//              graphics.setForegroundColor(cursorConfig.textColor)
-//            }
+        visibleLines.zipWithIndex.foreach { case (line, y) =>
+          if (y < height) {
+            graphics.putString(0, y, line.take(width))
+          }
         }
+
+        // Draw cursor
+        if (
+          cursorScreenRow >= 0 && cursorScreenRow < height &&
+          cursorScreenCol >= 0 && cursorScreenCol < width
+        ) {
+          val charAtCursor = if (cursorScreenRow < visibleLines.length) {
+            val line = visibleLines(cursorScreenRow)
+            if (cursorScreenCol < line.length) line.charAt(cursorScreenCol)
+            else ' '
+          } else ' '
+
+          graphics.setBackgroundColor(cursorConfig.cursorBackgroundColor)
+          graphics.setForegroundColor(cursorConfig.cursorForegroundColor)
+          graphics.setCharacter(
+            cursorScreenCol,
+            cursorScreenRow,
+            if (cursorConfig.showCharacterUnderCursor) charAtCursor
+            else cursorConfig.cursorChar
+          )
+        }
+      }
+
+      private def buildVisibleLines(
+          state: BufferState,
+          width: Int,
+          height: Int
+      ): Vector[String] = {
+        val content = state.buffer.collect()
+
+        // Find the line containing the cursor
+        val linesBeforeCursor =
+          content.take(state.cursorPosition).count(_ == '\n')
+
+        // Calculate how many screen lines we need before and after cursor
+        val screenLinesNeeded = height
+        val centerLine        = linesBeforeCursor
+
+        // Get a range of buffer lines around the cursor
+        val startBufferLine = Math.max(0, centerLine - height)
+        val endBufferLine   = centerLine + height
+
+        // Split content into buffer lines (by newlines)
+        val allBufferLines = content.split("\n", -1)
+        val bufferLinesToShow = allBufferLines.slice(
+          startBufferLine,
+          Math.min(endBufferLine, allBufferLines.length)
+        )
+
+        // Wrap each buffer line to screen width, preserving empty lines
+        val wrappedLines = bufferLinesToShow.flatMap { line =>
+          if (line.isEmpty) Vector("")
+          else wrapLine(line, width)
+        }.toVector
+
+        // Find which wrapped line contains the cursor
+        val cursorWrappedLine = findCursorWrappedLine(
+          allBufferLines,
+          startBufferLine,
+          state.cursorPosition,
+          width
+        )
+
+        // Center the view around the cursor's wrapped line
+        val startIdx = Math.max(0, cursorWrappedLine - height / 2)
+        val endIdx   = Math.min(wrappedLines.length, startIdx + height)
+
+        wrappedLines.slice(startIdx, endIdx)
+      }
+
+      private def wrapLine(line: String, width: Int): Vector[String] =
+        if (line.length <= width) Vector(line)
+        else {
+          val chunks = line.grouped(width).toVector
+          chunks
+        }
+
+      private def findCursorWrappedLine(
+          allLines: Array[String],
+          startLine: Int,
+          cursorPos: Int,
+          width: Int
+      ): Int = {
+        var currentPos       = 0
+        var wrappedLineCount = 0
+
+        // Calculate position through all lines up to cursor
+        for (i <- 0 until allLines.length) {
+          val line       = allLines(i)
+          val lineLength = line.length + 1 // +1 for newline
+
+          if (currentPos + lineLength > cursorPos) {
+            // Cursor is in this line
+            val posInLine = cursorPos - currentPos
+            val wrappedLinesInThisLine =
+              Math.max(1, (line.length + width - 1) / width)
+            val cursorWrappedOffset = posInLine / width
+            return wrappedLineCount + cursorWrappedOffset
+          }
+
+          currentPos += lineLength
+          wrappedLineCount += Math.max(1, (line.length + width - 1) / width)
+        }
+
+        wrappedLineCount
+      }
+
+      private def calculateCursorPosition(
+          state: BufferState,
+          visibleLines: Vector[String],
+          width: Int
+      ): (Int, Int) = {
+        val content          = state.buffer.collect()
+        val textBeforeCursor = content.take(state.cursorPosition)
+        val cursorBufferLine = textBeforeCursor.count(_ == '\n')
+        val lastNewline      = textBeforeCursor.lastIndexOf('\n')
+        val posInBufferLine = if (lastNewline == -1) {
+          state.cursorPosition
+        } else {
+          state.cursorPosition - lastNewline - 1
+        }
+
+        // Calculate wrapped position
+        val wrappedRow = posInBufferLine / width
+        val wrappedCol = posInBufferLine % width
+
+        // Find the screen row (need to account for all previous wrapped lines)
+        val allLines          = content.split("\n", -1)
+        var screenRow         = 0
+        var currentBufferLine = 0
+
+        for (i <- 0 until Math.min(cursorBufferLine, allLines.length)) {
+          val line = allLines(i)
+          screenRow += Math.max(1, (line.length + width - 1) / width)
+          currentBufferLine += 1
+        }
+
+        screenRow += wrappedRow
+
+        // Adjust for viewport scrolling
+        val centerLine    = screenRow
+        val viewportStart = Math.max(0, centerLine - visibleLines.length / 2)
+        val adjustedRow   = screenRow - viewportStart
+
+        (wrappedCol, adjustedRow)
       }
 
       override def getCursorLocation(
           component: BufferComponent
       ): TerminalPosition = {
-        val state            = stateRef.get.unsafeRunSync()
-        val content          = state.buffer.collect()
-        val textBeforeCursor = content.take(state.cursorPosition)
-        val cursorLine       = textBeforeCursor.count(_ == '\n')
-        val cursorColumn =
-          state.cursorPosition - textBeforeCursor.lastIndexOf('\n') - 1
-
-        // Calculate visible cursor position (accounting for scrolling)
-        val height    = component.getSize.getRows
-        val startLine = Math.max(0, cursorLine - height / 2)
-        val visibleY  = cursorLine - startLine
-
-        new TerminalPosition(cursorColumn, visibleY)
+        val state        = stateRef.get.unsafeRunSync()
+        val width        = component.getSize.getColumns
+        val height       = component.getSize.getRows
+        val visibleLines = buildVisibleLines(state, width, height)
+        val (col, row)   = calculateCursorPosition(state, visibleLines, width)
+        new TerminalPosition(col, row)
       }
 
       override def getPreferredSize(component: BufferComponent): TerminalSize =
         new TerminalSize(100, 80)
     }
 }
-
-/** Example: Main with enhanced component
-  */
-//object EnhancedMain {
-//  def createEnhancedUI(
-//      gui: MultiWindowTextGUI,
-//      bufferState: Ref[IO, BufferState],
-//      config: EditorConfig
-//  )(using IORuntime): IO[(BasicWindow, EnhancedBufferComponent)] = IO.delay {
-//    import scala.jdk.CollectionConverters.*
-//
-//    val window = new BasicWindow("BAM Editor - Enhanced")
-//    window.setHints(
-//      Set(
-//        Window.Hint.FULL_SCREEN,
-//        Window.Hint.NO_DECORATIONS
-//      ).asJava
-//    )
-//
-//    val mainPanel = new Panel()
-//    val layout    = new GridLayout(2)
-//    layout.setHorizontalSpacing(1)
-//    mainPanel.setLayoutManager(layout)
-//
-//    // File pane
-//    val filePanel = new Panel()
-//    filePanel.setLayoutManager(new LinearLayout(Direction.VERTICAL))
-//    filePanel.addComponent(new Label("Files"))
-//
-//    val fileList = new ActionListBox(new TerminalSize(25, 30))
-//    fileList.addItem("file1.txt", () => ())
-//    fileList.addItem("file2.scala", () => ())
-//    fileList.addItem("file3.md", () => ())
-//    filePanel.addComponent(fileList)
-//
-//    // Enhanced editor component
-//    val bufferComponent = new EnhancedBufferComponent(bufferState, config)
-//    bufferComponent.setPreferredSize(new TerminalSize(90, 35))
-//
-//    // Help bar at top
-//    val helpPanel = new Panel()
-//    helpPanel.setLayoutManager(new LinearLayout(Direction.HORIZONTAL))
-//    helpPanel.addComponent(
-//      new Label(" F1: Line Numbers | F2: Cursor Style | Ctrl+C: Exit ")
-//    )
-//
-//    mainPanel.addComponent(filePanel)
-//    mainPanel.addComponent(bufferComponent)
-//
-//    val rootPanel = new Panel()
-//    rootPanel.setLayoutManager(new LinearLayout(Direction.VERTICAL))
-//    rootPanel.addComponent(helpPanel)
-//    rootPanel.addComponent(mainPanel)
-//
-//    window.setComponent(rootPanel)
-//    (window, bufferComponent)
-//  }
-//
-//  def runEnhanced(args: List[String])(using IORuntime): IO[ExitCode] = {
-//    // Configuration
-//    val cursorInterval = 500.milliseconds
-//    val editorConfig   = EditorConfig.vimLike
-//
-//    (for {
-//      config <- IO.fromEither(
-//        pureconfig.ConfigSource.defaultApplication
-//          .load[app.config.AppConfig]
-//          .leftMap(failures => new RuntimeException(failures.toString))
-//      )
-//
-//      exitCode <- createScreen(config).use { screen =>
-//        for {
-//          bufferState <- Ref[IO].of(app.buffer.BufferState.empty)
-//          gui = new MultiWindowTextGUI(screen)
-//
-//          (window, bufferComponent) <- createEnhancedUI(
-//            gui,
-//            bufferState,
-//            editorConfig
-//          )
-//
-//          // Start blink stream
-//          blinkFiber <- fs2.Stream
-//            .fixedRate[IO](cursorInterval)
-//            .evalTap(_ => IO.delay(bufferComponent.onBlinkTick()))
-//            .compile
-//            .drain
-//            .start
-//
-//          _ <- IO.delay(gui.addWindowAndWait(window))
-//          _ <- blinkFiber.cancel
-//
-//        } yield ExitCode.Success
-//      }
-//    } yield exitCode).handleErrorWith { error =>
-//      IO.println(s"Error: ${error.getMessage}").as(ExitCode.Error)
-//    }
-//  }
-//
-//  private def createScreen(
-//      config: app.config.AppConfig
-//  ): Resource[IO, com.googlecode.lanterna.screen.Screen] = {
-//    import app.config.WindowConfig
-//    import com.googlecode.lanterna.terminal.swing.SwingTerminalFrame
-//
-//    Resource.make {
-//      IO.delay {
-//        val factory =
-//          new com.googlecode.lanterna.terminal.DefaultTerminalFactory()
-//        val WindowConfig(width, height) =
-//          config.initialSize.getOrElse(WindowConfig(120, 40))
-//        factory
-//          .setTerminalEmulatorTitle(config.title.getOrElse("BAM Editor"))
-//          .setInitialTerminalSize(new TerminalSize(width, height))
-//        val terminal = factory.createTerminal()
-//        terminal match {
-//          case frame: SwingTerminalFrame => frame.setLocationRelativeTo(null)
-//          case _                         => ()
-//        }
-//        val screen = new com.googlecode.lanterna.screen.TerminalScreen(terminal)
-//        screen.startScreen()
-//        screen
-//      }
-//    } { screen =>
-//      IO.delay(screen.stopScreen())
-//    }
-//  }
-//}
-
-/** Usage examples
-  */
-//object Examples {
-//  def simpleEditor()(using IORuntime): IO[ExitCode] = {
-//    val cursorInterval = 500.milliseconds
-//    val cursorStyle = CursorConfig.underscore
-//
-//    for {
-//      config <- IO.fromEither(
-//        pureconfig.ConfigSource.defaultApplication
-//          .load[app.config.AppConfig]
-//          .leftMap(failures => new RuntimeException(failures.toString))
-//      )
-//
-//      bufferState <- Ref[IO].of(app.buffer.BufferState.empty)
-//
-//      // Create simple component
-//      component = new BufferComponent(bufferState, cursorStyle)
-//
-//      // ... rest of setup
-//    } yield ExitCode.Success
-//  }
-//
-//  def enhancedEditor()(using IORuntime): IO[ExitCode] = {
-//    EnhancedMain.runEnhanced(List.empty)
-//  }
-//
-//  def syntaxHighlightingEditor()(using IORuntime): IO[ExitCode] = {
-//    val editorConfig = EditorConfig.vimLike
-//
-//    for {
-//      bufferState <- Ref[IO].of(app.buffer.BufferState.empty)
-//
-//      component = new SyntaxHighlightingComponent(
-//        bufferState,
-//        editorConfig,
-//        SimpleHighlighter.highlight
-//      )
-//
-//      // ... rest of setup
-//    } yield ExitCode.Success
-//  }
-//}
